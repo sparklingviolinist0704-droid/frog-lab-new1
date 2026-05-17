@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机能学数字实验室</title>
+<!-- jsdelivr CDN（国内更稳定） -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+<!-- Howler 已移除，改用原生 Audio API -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#070d1a;--bg2:#0b1424;--bg3:#0f1c32;
+  --ac:#00c8ff;--ac2:#00ffa3;--red:#ff3860;
+  --tx:#cde0f5;--tx2:#6a8aaa;--tx3:#3a5570;
+  --glass:rgba(7,13,26,0.9);--g2:rgba(255,255,255,0.04);
+  --bd:rgba(0,200,255,0.15);--bd2:rgba(255,255,255,0.07);
+  --r:10px;--sd:0 8px 32px rgba(0,0,0,0.55)
+}
+html,body{width:100%;height:100%;overflow:hidden;
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  background:var(--bg);color:var(--tx)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+button{font-family:inherit;cursor:pointer}
+
+/* ===== INTRO ===== */
+#intro{position:fixed;inset:0;z-index:1000;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+#pc{position:absolute;inset:0;pointer-events:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#itw{position:relative;z-index:2;max-width:780px;width:90%;text-align:center}
+.il{opacity:0;font-size:1.42rem;line-height:2.1;color:rgba(156,200,230,0.88);
+  letter-spacing:0.05em;font-weight:300;text-shadow:0 0 40px rgba(0,200,255,0.2);
+  display:block;animation:fadeUp 0.9s ease-out forwards}
+.il.em{font-size:1.82rem;color:#d8f0ff;font-weight:400;text-shadow:0 0 60px rgba(0,200,255,0.42)}
+.il:nth-child(1){animation-delay:0.4s}
+.il:nth-child(2){animation-delay:3.0s}
+.il:nth-child(3){animation-delay:5.6s}
+.il:nth-child(4){animation-delay:8.2s}
+.il:nth-child(5){animation-delay:10.8s}
+.il:nth-child(6){animation-delay:13.4s}
+.il:nth-child(7){animation-delay:16.9s}
+.il:nth-child(8){animation-delay:20.4s}
+#enter-btn{opacity:0;margin-top:36px;display:inline-block;
+  background:rgba(0,200,255,0.1);border:1px solid var(--ac);color:var(--ac);
+  padding:12px 36px;border-radius:24px;font-size:0.95rem;letter-spacing:0.08em;
+  transition:all 0.35s;animation:fadeIn 0.8s ease-out 23.5s forwards}
+#enter-btn:hover{background:rgba(0,200,255,0.22);box-shadow:0 0 24px rgba(0,200,255,0.3)}
+#skip-btn{position:fixed;top:20px;right:20px;z-index:1002;
+  background:rgba(0,200,255,0.07);border:1px solid var(--bd);color:var(--ac);
+  padding:7px 18px;border-radius:18px;font-size:0.8rem;transition:all 0.25s;
+  animation:fadeIn 0.5s ease-out 0.6s both}
+#skip-btn:hover{background:rgba(0,200,255,0.15)}
+#mbtn{position:fixed;bottom:22px;right:22px;z-index:1002;width:42px;height:42px;
+  border-radius:50%;background:rgba(0,200,255,0.08);border:1px solid var(--bd);
+  color:var(--ac);display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;transition:all 0.25s;animation:fadeIn 0.5s ease-out 0.6s both}
+#mbtn:hover{background:rgba(0,200,255,0.2)}
+#mbtn.muted{color:var(--tx3);border-color:var(--bd2)}
+#app.visible ~ #mbtn{display:none!important}
+#app.visible #mbtn{display:none!important}
+
+/* ===== APP ===== */
+#app{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;opacity:0;transition:opacity 0.5s}
+#app.visible{opacity:1}
+
+/* Topbar */
+#tb{height:54px;background:var(--bg2);border-bottom:1px solid var(--bd2);
+  display:flex;align-items:center;padding:0 16px;gap:8px;flex-shrink:0;z-index:200;overflow-x:auto;position:relative}
+#tb::-webkit-scrollbar{height:0}
+#stitle{font-size:0.98rem;font-weight:700;color:var(--ac);letter-spacing:0.07em;
+  white-space:nowrap;text-shadow:0 0 18px rgba(0,200,255,0.45);flex-shrink:0}
+.tdot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ac2);
+  margin:0 7px;vertical-align:middle;box-shadow:0 0 6px var(--ac2)}
+.sep{width:1px;height:22px;background:var(--bd2);flex-shrink:0}
+#etabs,#ntabs{display:flex;gap:3px;flex-shrink:0}
+.etab{padding:5px 11px;border-radius:6px;font-size:0.76rem;color:var(--tx2);
+  border:1px solid transparent;transition:all 0.2s;white-space:nowrap;background:transparent}
+.etab.on{background:rgba(0,200,255,0.11);border-color:var(--bd);color:var(--ac)}
+.etab:hover:not(.on){background:var(--g2);color:var(--tx)}
+.ntab{padding:5px 13px;border-radius:6px;font-size:0.82rem;color:var(--tx2);
+  transition:all 0.2s;white-space:nowrap;background:transparent;border:none}
+.ntab.on{background:rgba(0,200,255,0.14);color:var(--ac)}
+.ntab:hover:not(.on){background:var(--g2);color:var(--tx)}
+#tbm{width:34px;height:34px;border-radius:50%;background:var(--g2);
+  border:1px solid var(--bd2);color:var(--tx2);display:flex;align-items:center;
+  justify-content:center;font-size:0.95rem;transition:all 0.2s;flex-shrink:0}
+#tbm.on{color:var(--ac)}
+
+/* Main */
+#mc{display:flex;flex:1;overflow:hidden}
+#sw{flex:0 0 70%;position:relative;overflow:hidden;background:var(--bg)}
+/* result mode: 隐藏实验桌，结果观察全屏 */
+/* result-mode handled via inline style */
+#tc{display:block;width:100%;height:100%}
+
+/* Tooltip */
+#tip{position:absolute;display:none;pointer-events:none;z-index:8;
+  background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--bd);
+  border-radius:var(--r);padding:11px 15px;max-width:240px;box-shadow:var(--sd)}
+.tn{font-size:0.82rem;font-weight:700;color:var(--ac);margin-bottom:5px}
+.td{font-size:0.73rem;color:var(--tx2);line-height:1.55}
+.th{font-size:0.7rem;color:var(--ac2);margin-top:6px}
+
+/* Scene overlays */
+#rs{position:absolute;inset:0;z-index:5;display:none;background:#070d1a;
+  align-items:center;justify-content:center;flex-direction:column}
+#rs.show{display:flex}
+#rhc{display:none;width:100%;height:100%}
+#rmc,#rnc{display:block;width:100%;height:100%}
+#strov{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;background:var(--bg)}
+#strov.show{display:flex}
+#no3d{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;color:var(--tx3);font-size:0.85rem;text-align:center;z-index:2}
+#no3d.show{display:flex}
+
+/* Right panel */
+#rp{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2);border-left:1px solid var(--bd2)}
+#rp .pnl.on{flex:1}
+.pnl{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
+#pnl-result{overflow:hidden;flex-direction:column}
+#pnl-result .ro-pnl.on{flex:1;min-height:0;overflow:hidden}
+#pnl-result #yyp-result{flex-shrink:0}
+.pnl.on{display:flex}
+#pnl-result.on{flex-direction:column}
+.ps{flex:1;overflow-y:auto;padding:14px}
+
+/* Cards */
+.card{background:var(--g2);border:1px solid var(--bd2);border-radius:var(--r);padding:13px;margin-bottom:10px}
+.ch{font-size:0.74rem;font-weight:700;color:var(--ac);margin-bottom:8px;letter-spacing:0.06em;text-transform:uppercase}
+.card p{font-size:0.79rem;color:var(--tx2);line-height:1.7;margin-bottom:5px}
+.card ul{padding-left:14px}
+.card li{font-size:0.78rem;color:var(--tx2);line-height:1.8;margin-bottom:2px}
+
+/* Op tab */
+.ovw{padding:12px;border-bottom:1px solid var(--bd2)}
+.ovw video{width:100%;border-radius:8px;background:#000;max-height:200px;object-fit:contain;display:block}
+.vc{display:flex;gap:8px;margin-top:8px;align-items:center}
+.vb{background:rgba(0,200,255,0.1);border:1px solid var(--bd);color:var(--ac);
+  padding:5px 14px;border-radius:6px;font-size:0.78rem;transition:all 0.2s}
+.vb:hover{background:rgba(0,200,255,0.2)}
+.vlb{font-size:0.73rem;color:var(--tx3);flex:1;text-align:right}
+.opts{padding:12px}
+.opt{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd2);align-items:flex-start}
+.opt:last-child{border-bottom:none}
+.oi{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:0.85rem;background:rgba(0,200,255,0.1);color:var(--ac)}
+.ot{font-size:0.79rem;font-weight:600;color:var(--tx);margin-bottom:3px}
+.od{font-size:0.74rem;color:var(--tx2);line-height:1.55}
+
+/* Result tab */
+.rsec{display:none}
+.rsec.on{display:block}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.rb{padding:8px 4px;border-radius:8px;font-size:0.72rem;text-align:center;line-height:1.4;
+  border:1px solid var(--bd2);background:var(--g2);color:var(--tx);transition:all 0.22s}
+.rb:hover{border-color:var(--bd);background:rgba(0,200,255,0.08)}
+.rb.sel{border-color:var(--ac);background:rgba(0,200,255,0.14);color:var(--ac)}
+.rdot{width:10px;height:10px;border-radius:50%;margin:4px auto}
+.reff{font-size:0.67rem;color:var(--tx3);margin-top:2px}
+.rstat{font-size:0.76rem;color:var(--tx2);padding:8px;background:var(--g2);
+  border-radius:6px;margin-bottom:10px;border:1px solid var(--bd2);line-height:1.65}
+.rstat span{color:var(--ac);font-weight:600}
+.obs{width:100%;background:var(--g2);border:1px solid var(--bd2);border-radius:8px;
+  color:var(--tx);font-size:0.79rem;padding:10px;resize:none;font-family:inherit;
+  min-height:36px;outline:none;transition:border-color 0.2s}
+.obs:focus{border-color:var(--bd)}
+.subbtn{width:100%;margin-top:8px;padding:9px;border-radius:8px;
+  background:linear-gradient(135deg,rgba(0,200,255,0.18),rgba(123,95,255,0.14));
+  border:1px solid var(--bd);color:var(--ac);font-size:0.82rem;letter-spacing:0.04em;transition:all 0.25s}
+.subbtn:hover{background:linear-gradient(135deg,rgba(0,200,255,0.3),rgba(123,95,255,0.22))}
+.rstbtn{width:100%;margin-top:6px;padding:7px;border-radius:8px;background:var(--g2);
+  border:1px solid var(--bd2);color:var(--tx3);font-size:0.78rem;transition:all 0.22s}
+.rstbtn:hover{color:var(--tx)}
+.crow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sbtn{padding:9px 20px;border-radius:8px;font-size:0.82rem;
+  background:linear-gradient(135deg,rgba(255,56,96,0.2),rgba(255,56,96,0.08));
+  border:1px solid rgba(255,56,96,0.4);color:var(--red);letter-spacing:0.04em;
+  transition:all 0.25s;flex-shrink:0}
+.sbtn:hover{background:linear-gradient(135deg,rgba(255,56,96,0.35),rgba(255,56,96,0.18))}
+.sbtn.fl{box-shadow:0 0 18px rgba(255,56,96,0.6);transform:scale(0.96)}
+.slw{flex:1}
+.slw label{font-size:0.72rem;color:var(--tx3);display:block;margin-bottom:4px}
+input[type=range]{width:100%;accent-color:var(--ac);cursor:pointer}
+.sinfo{font-size:0.74rem;color:var(--tx2);margin-bottom:10px;background:var(--g2);
+  padding:8px;border-radius:6px;border:1px solid var(--bd2);line-height:1.6}
+.sinfo strong{color:var(--ac2)}
+.ww{background:#020a14;border-radius:8px;border:1px solid var(--bd2);overflow:hidden;
+  margin-bottom:10px;position:relative}
+.ww canvas{display:block;width:100%}
+.wlbl{position:absolute;top:6px;left:8px;font-size:0.67rem;color:var(--ac);
+  letter-spacing:0.05em;opacity:0.7;pointer-events:none}
+
+/* Structure */
+#ssel{display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--bd2);flex-shrink:0}
+.sbtn2{flex:1;padding:7px;border-radius:8px;font-size:0.79rem;text-align:center;
+  border:1px solid var(--bd2);background:var(--g2);color:var(--tx2);transition:all 0.22s}
+.sbtn2.on{border-color:var(--bd);color:var(--ac);background:rgba(0,200,255,0.08)}
+#sinfo{overflow-y:auto;flex:1;padding:14px}
+.shs{padding:8px 0;border-bottom:1px solid var(--bd2)}
+.shs:last-child{border-bottom:none}
+.shn{font-size:0.79rem;font-weight:600;color:var(--ac2);margin-bottom:3px}
+.shd{font-size:0.73rem;color:var(--tx2);line-height:1.55}
+
+/* 幽幽瓶 */
+#yyp{border-top:1px solid var(--bd2);flex-shrink:0}
+#yyh{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+#yyav{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--bd);flex-shrink:0}
+.yyn{font-size:0.82rem;font-weight:700;color:var(--ac2)}
+.yys{font-size:0.69rem;color:var(--tx3)}
+#yyarr{margin-left:auto;font-size:0.8rem;color:var(--tx3)}
+#yyb{overflow:hidden;transition:max-height 0.35s ease;max-height:0}
+#yyb.open{max-height:440px;overflow-y:auto}
+.yyin{padding:10px 14px 14px;overflow-y:auto;max-height:380px}
+.yyq{font-size:0.77rem;color:var(--tx2);margin-bottom:8px;line-height:1.6;
+  background:rgba(0,255,163,0.04);border:1px solid rgba(0,255,163,0.1);
+  border-radius:8px;padding:8px 10px}
+.yyqi{font-weight:600;color:var(--ac2);display:block;margin-bottom:3px;font-size:0.78rem}
+#yyres{margin-top:8px;padding:10px;border-radius:8px;
+  background:rgba(0,255,163,0.05);border:1px solid rgba(0,255,163,0.15);
+  display:none;font-size:0.77rem;line-height:1.65;color:var(--tx2)}
+.ares{margin-top:8px;padding:10px;border-radius:8px;
+  background:rgba(0,200,255,0.05);border:1px solid rgba(0,200,255,0.15);
+  display:none;font-size:0.77rem;line-height:1.65;color:var(--tx2)}
+.sbadge{display:inline-block;background:var(--ac2);color:#000;
+  font-weight:700;font-size:0.74rem;padding:2px 10px;border-radius:12px;margin-left:6px}
+
+/* Modal */
+#vm{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.88);
+  display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+#vm.show{display:flex}
+#vmi{position:relative;max-width:880px;width:95%;background:var(--bg2);
+  border-radius:14px;border:1px solid var(--bd);overflow:hidden}
+#vmi video{width:100%;display:block;max-height:72vh;object-fit:contain;background:#000}
+#vmx{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;
+  background:rgba(0,0,0,0.7);border:1px solid var(--bd2);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:0.85rem;z-index:5}
+#vmtitle{padding:8px 14px;font-size:0.8rem;color:var(--tx2);border-top:1px solid var(--bd2)}
+
+/* Chat bubbles */
+.cb-user{align-self:flex-end;background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.2);
+  color:var(--tx);border-radius:12px 12px 2px 12px;padding:7px 11px;font-size:.78rem;line-height:1.6;max-width:88%}
+.cb-yy{align-self:flex-start;display:flex;gap:7px;max-width:92%}
+.cb-yy-av{width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid var(--bd);flex-shrink:0;margin-top:2px}
+.cb-yy-bubble{background:rgba(0,255,163,.06);border:1px solid rgba(0,255,163,.15);
+  color:var(--tx2);border-radius:12px 12px 12px 2px;padding:7px 11px;font-size:.78rem;line-height:1.6}
+.cb-thinking{color:var(--tx3);font-size:.74rem;font-style:italic;align-self:flex-start;padding:4px 8px}
+
+/* ── Result Observation ── */
+.ro-tab{padding:8px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--tx3);font-size:.78rem;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.ro-tab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.ro-tab:hover{color:var(--tx)}
+.ro-pnl{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
+.ro-pnl.on{display:flex}
+.ro-split{display:flex;flex:1;overflow:hidden;gap:0}
+.ro-canvas-wrap{flex:0 0 55%;position:relative;background:#060c18;overflow:hidden;min-height:0}
+.ro-canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ro-ctrl{flex:1;overflow-y:auto;padding:12px 14px;background:rgba(5,10,22,.6);border-left:1px solid var(--bd2);display:flex;flex-direction:column;min-width:0;min-height:0}
+#heart-overlay-hint,#muscle-overlay-hint,#nerve-overlay-hint{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  font-size:.68rem;color:rgba(0,200,255,.65);background:rgba(6,12,24,.75);
+  padding:3px 12px;border-radius:10px;pointer-events:none;white-space:nowrap;z-index:4}
+#ecg-strip{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(4,8,20,.95));padding:6px 14px 10px;display:flex;align-items:center;gap:10px}
+#ecg-bpm-lbl{font-size:.65rem;color:rgba(0,210,90,.75);font-family:monospace;flex-shrink:0;width:50px}
+#ecg-canvas{flex:1;display:block;height:48px;border-radius:4px}
+#signal-bar-wrap{position:absolute;bottom:50px;left:14px;right:14px;z-index:4;background:rgba(6,12,24,.8);border-radius:6px;padding:6px 10px;display:flex;align-items:center;gap:8px}
+#signal-bar-inner{height:5px;width:0%;background:linear-gradient(90deg,#ffdd44,#ff8800);border-radius:3px;transition:width .05s linear;flex:1}
+#signal-bar-lbl{font-size:.65rem;color:rgba(255,200,50,.8);white-space:nowrap}
+/* ro-ctrl defined above */
+.ro-ctrl-title{font-size:.78rem;font-weight:700;color:var(--tx);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bd2)}
+#drug-cards{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.drug-card{padding:9px 12px;border-radius:9px;border:1px solid var(--bd2);cursor:pointer;transition:all .18s;background:rgba(255,255,255,.03);display:flex;align-items:center;gap:10px}
+.drug-card:hover{border-color:rgba(0,200,255,.4);background:rgba(0,200,255,.06)}
+.drug-card.active{border-color:var(--ac);background:rgba(0,200,255,.1)}
+.drug-card-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.drug-card-name{font-size:.75rem;font-weight:600;color:var(--tx)}
+.drug-card-desc{font-size:.65rem;color:var(--tx3);margin-top:2px}
+.ro-status{font-size:.72rem;color:var(--tx2);padding:6px 8px;border-radius:6px;background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.1);min-height:28px;line-height:1.5}
+.ro-reset-btn{margin-top:8px;padding:6px 14px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--bd2);color:var(--tx2);font-size:.72rem;cursor:pointer;font-family:inherit;transition:all .15s}
+.ro-reset-btn:hover{background:rgba(255,255,255,.1)}
+.ro-stim-btn{padding:9px;border-radius:8px;background:linear-gradient(135deg,rgba(0,200,255,.18),rgba(100,80,255,.14));border:1px solid rgba(0,200,255,.35);color:var(--ac);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;letter-spacing:.5px}
+.ro-stim-btn:hover{background:linear-gradient(135deg,rgba(0,200,255,.28),rgba(100,80,255,.22));transform:translateY(-1px)}
+.ro-stim-btn:active{transform:translateY(0)}
+.ro-stim-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.ro-fault-btn{padding:5px 10px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid var(--bd2);color:var(--tx2);font-size:.7rem;cursor:pointer;font-family:inherit;text-align:left;transition:all .15s}
+.ro-fault-btn:hover{background:rgba(255,255,255,.08)}
+.ro-danger{color:rgba(255,100,100,.8);border-color:rgba(255,80,80,.25)}
+
+/* Utils */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin 1s linear infinite}
+
+/* YY panels always clickable */
+#yyp{position:relative;z-index:5}
+#yyp-op{position:relative;z-index:5}
+#yyb.open,#yyb-op{overflow:visible!important}
+.pnl.on #yyp .obs,.pnl.on #yyp-op .obs{min-height:36px;max-height:80px}
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="intro">
+  <canvas id="pc"></canvas>
+  <div id="itw">
+    <span class="il">过去，机能学的第一课从一只青蛙开始。</span>
+    <span class="il">今天，我们从一行代码出发。</span>
+    <span class="il">我们用数字孪生重建每一次心跳，</span>
+    <span class="il">用人工智能还原每一条神经通路。</span>
+    <span class="il">不是回避实验，而是选择另一种尊重——</span>
+    <span class="il">让学生在虚拟中反复探索，在真实世界里一次做对。</span>
+    <span class="il em">用模拟替代试错，用算法替代牺牲，用数字生命守护真实生命。</span>
+    <span class="il em">——这，就是替代原则的意义。</span>
+    <button id="enter-btn">进入实验室 →</button>
+  </div>
+</div>
+<button id="skip-btn">跳过动画</button>
+<button id="mbtn">♪</button>
+
+<!-- 背景音乐：原生 Audio，无跨域池问题 -->
+<audio id="bgm-el" loop preload="none" crossorigin="anonymous">
+  <source src="https://frog.oss-cn-shanghai.aliyuncs.com/sigmamusicart-emotional-piano-music-256262.mp3" type="audio/mpeg">
+</audio>
+
+<!-- APP -->
+<div id="app">
+  <div id="tb">
+    <span id="stitle">机能学<span class="tdot"></span>数字实验室</span>
+    <div class="sep"></div>
+    <div id="etabs">
+      <button class="etab on" data-exp="heart">蛙心灌流</button>
+      <button class="etab" data-exp="muscle">骨骼肌收缩</button>
+      <button class="etab" data-exp="nerve">神经干动作电位</button>
+    </div>
+    <div class="sep"></div>
+    <div id="ntabs">
+      <button class="ntab on" data-tab="preview">实验预习</button>
+      <button class="ntab" data-tab="operation">操作讲解</button>
+      <button class="ntab" data-tab="result">结果观察</button>
+      <button class="ntab" data-tab="structure">结构观察</button>
+    </div>
+    <button onclick="showReport()" title="学习报告" style="padding:4px 10px;border-radius:12px;border:1px solid rgba(0,255,163,.3);background:rgba(0,255,163,.06);color:rgba(0,255,163,.8);font-size:.68rem;cursor:pointer;white-space:nowrap;margin-right:4px">📊 报告</button>
+    <button id="tbm">♪</button>
+  </div>
+  <div id="mc">
+    <div id="sw">
+      <canvas id="tc"></canvas>
+      <div id="no3d"><div style="font-size:2.5rem">🔬</div><div>3D 场景加载中…<br><small>如长时间未显示，请检查网络</small></div></div>
+      <div id="tip"><div class="tn" id="tn"></div><div class="td" id="td"></div><div class="th" id="th"></div></div>
+      <div id="rs">
+        <!-- Heart: full canvas -->
+        <canvas id="rhc"></canvas>
+        <!-- Muscle: video top + canvas bottom -->
+        <div id="rm-split" style="display:none;flex-direction:column;width:100%;height:100%">
+          <div style="flex:1;position:relative;background:#000;min-height:0">
+            <video id="rmv" loop autoplay muted playsinline
+              style="width:100%;height:100%;object-fit:contain;display:block">
+              <source src="https://frog.oss-cn-shanghai.aliyuncs.com/%E6%94%B9%E5%8F%98%E5%88%BA%E6%BF%80%E5%BC%BA%E5%BA%A6%E5%92%8C%E9%A2%91%E7%8E%87%E5%AF%B9%E9%AA%A8%E9%AA%BC%E8%82%8C%E6%94%B6%E7%BC%A9%E7%9A%84%E5%BD%B1%E5%93%8D.mp4" type="video/mp4">
+            </video>
+            <div style="position:absolute;top:6px;left:10px;font-size:.7rem;color:rgba(0,200,255,.7);
+              background:rgba(7,13,26,.6);padding:2px 8px;border-radius:4px;pointer-events:none">📹 实验演示</div>
+            <div style="position:absolute;bottom:6px;right:10px;display:flex;gap:6px">
+              <button onclick="document.getElementById('rmv').muted=!document.getElementById('rmv').muted;this.textContent=document.getElementById('rmv').muted?'🔇':'🔊'"
+                style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:4px;padding:3px 8px;font-size:.72rem;cursor:pointer">🔇</button>
+              <button onclick="document.getElementById('rmv').requestFullscreen&&document.getElementById('rmv').requestFullscreen()"
+                style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:4px;padding:3px 8px;font-size:.72rem;cursor:pointer">⛶</button>
+            </div>
+          </div>
+          <div style="flex:1;position:relative;min-height:0">
+            <canvas id="rmc" style="width:100%;height:100%;display:block"></canvas>
+          </div>
+        </div>
+        <!-- Nerve: video top + canvas bottom -->
+        <div id="rn-split" style="display:none;flex-direction:column;width:100%;height:100%">
+          <div style="flex:1;position:relative;background:#000;min-height:0">
+            <video id="rnv" loop autoplay muted playsinline
+              style="width:100%;height:100%;object-fit:contain;display:block">
+              <source src="https://frog.oss-cn-shanghai.aliyuncs.com/%E7%A5%9E%E7%BB%8F%E5%B9%B2v0_20230914_ly.mp4" type="video/mp4">
+            </video>
+            <div style="position:absolute;top:6px;left:10px;font-size:.7rem;color:rgba(0,200,255,.7);
+              background:rgba(7,13,26,.6);padding:2px 8px;border-radius:4px;pointer-events:none">📹 实验演示</div>
+            <div style="position:absolute;bottom:6px;right:10px;display:flex;gap:6px">
+              <button onclick="document.getElementById('rnv').muted=!document.getElementById('rnv').muted;this.textContent=document.getElementById('rnv').muted?'🔇':'🔊'"
+                style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:4px;padding:3px 8px;font-size:.72rem;cursor:pointer">🔇</button>
+              <button onclick="document.getElementById('rnv').requestFullscreen&&document.getElementById('rnv').requestFullscreen()"
+                style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:4px;padding:3px 8px;font-size:.72rem;cursor:pointer">⛶</button>
+            </div>
+          </div>
+          <div style="flex:1;position:relative;min-height:0">
+            <canvas id="rnc" style="width:100%;height:100%;display:block"></canvas>
+          </div>
+        </div>
+        <!-- ECG overlay for heart -->
+        <div id="ecg-overlay" style="display:none;position:absolute;bottom:0;left:0;right:0;
+          background:linear-gradient(transparent,rgba(7,13,26,0.95));padding:12px 20px 16px">
+          <div style="font-size:0.7rem;color:rgba(0,200,100,0.6);margin-bottom:4px;font-family:monospace"
+               id="ecg-label">ECG &nbsp; 72 bpm</div>
+          <canvas id="ecg2d" height="60" style="width:100%;display:block;border-radius:4px"></canvas>
+        </div>
+      </div>
+      <div id="strov"></div>
+      <!-- 演示视频快捷按钮（模型CORS失败时的备用入口） -->
+      <div id="demo-btns" style="display:none;position:absolute;bottom:12px;left:12px;z-index:8;gap:8px;flex-wrap:wrap">
+        <button onclick="openVM(C.DEMO.pithing,'双毁髓操作演示')"
+          style="padding:5px 12px;border-radius:6px;background:rgba(7,13,26,.82);border:1px solid rgba(0,200,255,.3);color:rgba(0,200,255,.85);font-size:.72rem;cursor:pointer;backdrop-filter:blur(4px)">
+          🎬 双毁髓演示
+        </button>
+        <button onclick="openVM(C.DEMO.cannula,'心脏插管操作演示')"
+          style="padding:5px 12px;border-radius:6px;background:rgba(7,13,26,.82);border:1px solid rgba(0,200,255,.3);color:rgba(0,200,255,.85);font-size:.72rem;cursor:pointer;backdrop-filter:blur(4px)">
+          🎬 心脏插管演示
+        </button>
+      </div>
+    </div>
+    <div id="rp">
+      <!-- Preview -->
+      <div class="pnl on" id="pnl-preview">
+        <div class="ps" id="prev-scroll" style="flex:1;overflow-y:auto;min-height:0"></div>
+        <div id="yyp">
+          <div id="yyh" onclick="toggleYY()">
+            <img id="yyav" src="https://frog.oss-cn-shanghai.aliyuncs.com/c5071a7b-4c66-4b25-b951-b601a0978485.jpg" alt="幽幽瓶">
+            <div><div class="yyn">幽幽瓶</div><div class="yys">AI 助手 · 随时问我</div></div>
+            <span id="yyarr">▲</span>
+          </div>
+          <div id="yyb" class="open">
+            <div id="yychat" style="padding:10px 14px 0;max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
+            <div style="padding:8px 14px 12px;display:flex;gap:6px;align-items:flex-end">
+              <textarea class="obs" id="yyinput" placeholder="问幽幽瓶任何问题…" style="min-height:40px;max-height:100px;flex:1;resize:none" rows="1"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendYYChat()}"></textarea>
+              <button onclick="sendYYChat()" style="height:38px;padding:0 14px;border-radius:8px;background:linear-gradient(135deg,rgba(0,200,255,.2),rgba(123,95,255,.15));border:1px solid var(--bd);color:var(--ac);font-size:.82rem;white-space:nowrap;flex-shrink:0">发送</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Operation -->
+      <div class="pnl" id="pnl-operation">
+        <div class="ovw">
+          <video id="opvid" controls preload="metadata"><source id="ovsrc" src="" type="video/mp4"></video>
+          <div class="vc">
+            <button class="vb" onclick="document.getElementById('opvid').play()">▶ 播放</button>
+            <button class="vb" onclick="document.getElementById('opvid').requestFullscreen&&document.getElementById('opvid').requestFullscreen()">⛶ 全屏</button>
+            <span class="vlb" id="ovlbl"></span>
+          </div>
+        </div>
+        <div class="opts" id="opoints" style="flex:1;overflow-y:auto;min-height:0"></div>
+        <div id="yyp-op" style="border-top:1px solid var(--bd2);flex-shrink:0">
+          <div id="yyh-op" onclick="toggleYYOp()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none">
+            <img style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--bd);flex-shrink:0"
+              src="https://frog.oss-cn-shanghai.aliyuncs.com/c5071a7b-4c66-4b25-b951-b601a0978485.jpg" alt="幽幽瓶">
+            <div><div class="yyn">幽幽瓶</div><div class="yys">对操作有疑问？来问我</div></div>
+            <span id="yyarr-op" style="margin-left:auto;font-size:.8rem;color:var(--tx3)">▼</span>
+          </div>
+          <div id="yyb-op" style="overflow-y:auto;max-height:380px">
+            <div id="yychat-op" style="padding:10px 14px 0;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
+            <div style="padding:8px 14px 12px;display:flex;gap:6px;align-items:flex-end">
+              <textarea class="obs" id="yyinput-op" placeholder="操作步骤有疑问？直接问…" style="min-height:40px;max-height:100px;flex:1;resize:none" rows="1"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendYYChatOp()}"></textarea>
+              <button onclick="sendYYChatOp()" style="height:38px;padding:0 14px;border-radius:8px;background:linear-gradient(135deg,rgba(0,200,255,.2),rgba(123,95,255,.15));border:1px solid var(--bd);color:var(--ac);font-size:.82rem;white-space:nowrap;flex-shrink:0">发送</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Result -->
+      <div class="pnl" id="pnl-result">
+        <!-- 子标签：三个实验 -->
+        <div id="ro-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--bd2);flex-shrink:0">
+          <button class="ro-tab on" data-ro="heart" onclick="switchRO('heart',this)">🫀 蛙心灌流</button>
+          <button class="ro-tab" data-ro="muscle" onclick="switchRO('muscle',this)">💪 骨骼肌收缩</button>
+          <button class="ro-tab" data-ro="nerve" onclick="switchRO('nerve',this)">⚡ 神经干</button>
+        </div>
+
+        <!-- ══ 蛙心灌流 ══ -->
+        <div class="ro-pnl on" id="ro-heart">
+          <div class="ro-split">
+            <!-- 左：3D场景 -->
+            <div class="ro-canvas-wrap" id="heart-canvas-wrap">
+              <canvas id="heart-canvas"></canvas>
+              <div id="heart-loading" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(6,12,24,.92);z-index:10;pointer-events:none" id="heart-loading">
+                <div style="font-size:.72rem;color:rgba(0,200,255,.7)" id="h-load-txt">加载心脏模型…</div>
+                <div style="width:160px;height:3px;background:rgba(255,255,255,.1);border-radius:2px"><div id="h-load-bar" style="height:100%;width:0%;background:rgba(255,80,80,.8);border-radius:2px;transition:width .3s"></div></div>
+              </div>
+              <div id="heart-overlay-hint">点击下方药物卡片改变灌流液</div>
+              <!-- ECG条 -->
+              <div id="ecg-strip">
+                <span id="ecg-bpm-lbl">72 bpm</span>
+                <canvas id="ecg-canvas" height="48"></canvas>
+              </div>
+            </div>
+            <!-- 右：控制面板 -->
+            <div class="ro-ctrl">
+              <div class="ro-ctrl-title">💊 选择灌流液/药物</div>
+              <div id="drug-cards"></div>
+              <div id="heart-status" class="ro-status"></div>
+              <div id="heart-score-panel" style="display:none;margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.15)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                  <span style="font-size:.7rem;color:rgba(0,200,255,.7);font-weight:600">📊 实验评分</span>
+                  <span id="heart-score-num" style="font-size:1.1rem;font-weight:700;color:var(--ac2)">--</span>
+                </div>
+                <div id="heart-score-detail" style="font-size:.65rem;color:var(--tx3);line-height:1.7"></div>
+              </div>
+              <button class="ro-reset-btn" onclick="resetHeart3D()">↺ 重置基础状态</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ 骨骼肌 ══ -->
+        <div class="ro-pnl" id="ro-muscle">
+          <div class="ro-split">
+            <div class="ro-canvas-wrap" id="muscle-canvas-wrap">
+              <canvas id="muscle-canvas"></canvas>
+              <div id="muscle-overlay-hint">点击「刺激」触发神经信号传导</div>
+            </div>
+            <div class="ro-ctrl">
+              <div class="ro-ctrl-title">💪 骨骼肌收缩实验</div>
+              <div style="margin-bottom:10px">
+                <label style="font-size:.72rem;color:var(--tx3)">刺激强度</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                  <input type="range" id="m-strength" min="10" max="100" value="60" style="flex:1;accent-color:var(--ac)" oninput="document.getElementById('m-sv').textContent=this.value+'%'">
+                  <span id="m-sv" style="font-size:.72rem;color:var(--ac);width:32px">60%</span>
+                </div>
+              </div>
+              <div style="margin-bottom:12px">
+                <label style="font-size:.72rem;color:var(--tx3)">刺激频率</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                  <input type="range" id="m-freq" min="1" max="50" value="1" style="flex:1;accent-color:var(--ac)" oninput="document.getElementById('m-fv').textContent=this.value+' Hz'">
+                  <span id="m-fv" style="font-size:.72rem;color:var(--ac);width:40px">1 Hz</span>
+                </div>
+              </div>
+              <button id="stim-btn" class="ro-stim-btn" onclick="mStimulate()">⚡ 刺激</button>
+              <div id="m-sig-bar" style="display:none;margin-top:8px;padding:6px 10px;background:rgba(6,12,24,.8);border-radius:6px;align-items:center;gap:8px">
+                <div id="m-sig-inner" style="height:5px;width:0%;background:linear-gradient(90deg,#ffdd44,#ff8800);border-radius:3px;flex:1;transition:width .08s"></div>
+                <span style="font-size:.65rem;color:rgba(255,200,50,.8);white-space:nowrap">电信号传导中…</span>
+              </div>
+              <div id="m-status" class="ro-status" style="margin-top:8px"></div>
+              <div style="margin-top:10px">
+                <div style="font-size:.65rem;color:var(--tx3);margin-bottom:4px">肌力-时间曲线</div>
+                <canvas id="muscle-wave" height="60" style="width:100%;border-radius:6px;background:#020a14"></canvas>
+              </div>
+              <div style="margin-top:10px">
+                <div style="font-size:.65rem;color:var(--tx3);margin-bottom:4px">📹 实验演示视频</div>
+                <video controls style="width:100%;border-radius:8px;background:#000;max-height:150px" preload="metadata">
+                  <source src="https://frog.oss-cn-shanghai.aliyuncs.com/%E6%94%B9%E5%8F%98%E5%88%BA%E6%BF%80%E5%BC%BA%E5%BA%A6%E5%92%8C%E9%A2%91%E7%8E%87%E5%AF%B9%E9%AA%A8%E9%AA%BC%E8%82%8C%E6%94%B6%E7%BC%A9%E7%9A%84%E5%BD%B1%E5%93%8D.mp4" type="video/mp4">
+                </video>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ro-pnl" id="ro-nerve">
+          <div class="ro-split">
+            <!-- 左：伪3D canvas -->
+            <div class="ro-canvas-wrap" id="nerve-canvas-wrap">
+              <canvas id="nerve-canvas"></canvas>
+              <div id="nerve-overlay-hint">点击神经干任意位置施加刺激</div>
+            </div>
+            <!-- 右：控制 + 视频 -->
+            <div class="ro-ctrl">
+              <div class="ro-ctrl-title">⚡ 神经干动作电位</div>
+              <div style="margin-bottom:10px">
+                <label style="font-size:.72rem;color:var(--tx3)">刺激强度</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                  <input type="range" id="n-strength" min="5" max="100" value="30" style="flex:1;accent-color:var(--ac)" oninput="updateNerveStrength(this.value)">
+                  <span id="n-strength-val" style="font-size:.72rem;color:var(--ac);width:28px">30%</span>
+                </div>
+              </div>
+              <div id="nerve-fault-panel" style="margin-bottom:10px;display:flex;flex-direction:column;gap:6px">
+                <button onclick="toggleNLiquid()" id="n-liq-btn" class="ro-fault-btn">💧 记录槽注液（短路）</button>
+                <button onclick="absorbNLiquid()" class="ro-fault-btn">📄 滤纸吸干</button>
+                <button onclick="crushNerve()" id="n-crush-btn" class="ro-fault-btn ro-danger">🔬 镊子夹伤神经→单相AP</button>
+              </div>
+              <div id="nerve-status" class="ro-status"></div>
+              <!-- 波形 -->
+              <div style="margin-top:8px">
+                <div style="font-size:.65rem;color:var(--tx3);margin-bottom:4px" id="nerve-wave-lbl">复合动作电位（双相）</div>
+                <canvas id="nerve-wave" height="70" style="width:100%;border-radius:6px;background:#020a14"></canvas>
+              </div>
+              <!-- 视频 -->
+              <div style="margin-top:10px">
+                <div style="font-size:.65rem;color:var(--tx3);margin-bottom:4px">📹 实验演示视频</div>
+                <video controls style="width:100%;border-radius:8px;background:#000;max-height:160px" preload="metadata">
+                  <source src="https://frog.oss-cn-shanghai.aliyuncs.com/%E7%A5%9E%E7%BB%8F%E5%B9%B2v0_20230914_ly.mp4" type="video/mp4">
+                </video>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="yyp-result" style="border-top:1px solid var(--bd2);flex-shrink:0;background:rgba(5,10,22,.7);z-index:10;position:relative">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--bd2)">
+            <img style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--bd);flex-shrink:0" src="https://frog.oss-cn-shanghai.aliyuncs.com/c5071a7b-4c66-4b25-b951-b601a0978485.jpg">
+            <div style="flex:1;min-width:0"><div class="yyn">幽幽瓶</div><div class="yys">描述观察到的现象，我来评分</div></div>
+            <div id="result-score-badge" style="display:none;text-align:center;flex-shrink:0"><div style="font-size:.6rem;color:var(--tx3)">得分</div><div id="result-score-num" style="font-size:1.2rem;font-weight:700;color:var(--ac2)">--</div></div>
+          </div>
+          <div id="yychat-result" style="overflow-y:auto;padding:6px 14px;display:flex;flex-direction:column;gap:6px;max-height:110px;min-height:36px"></div>
+          <div style="padding:5px 10px 8px;display:flex;gap:5px;align-items:center;border-top:1px solid var(--bd2)">
+            <button id="voice-toggle-btn" onclick="toggleVoice()" title="语音开关" style="width:28px;height:28px;flex-shrink:0;border-radius:50%;border:1px solid var(--bd2);background:rgba(0,200,255,.08);color:var(--ac);font-size:.75rem;cursor:pointer;padding:0">🔊</button>
+            <textarea class="obs" id="yyinput-result" placeholder="描述观察…" rows="1" style="min-height:28px;max-height:60px;flex:1;resize:none;font-size:.75rem" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendYYResult()}"></textarea>
+            <button onclick="sendYYResult()" style="height:28px;padding:0 10px;border-radius:7px;background:linear-gradient(135deg,rgba(0,200,255,.2),rgba(123,95,255,.15));border:1px solid var(--bd);color:var(--ac);font-size:.72rem;cursor:pointer;white-space:nowrap;flex-shrink:0">发送</button>
+          </div>
+        </div>
+      
+
+      </div>
+
+      <!-- Structure -->
+      <div class="pnl" id="pnl-structure">
+        <div id="ssel">
+          <button class="sbtn2 on" onclick="setStr('heart',this)">🫀 蛙心脏</button>
+          <button class="sbtn2" onclick="setStr('frog',this)">🐸 全蛙骨骼肌</button>
+        </div>
+        <div id="sinfo"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Video modal -->
+<div id="vm">
+  <div id="vmi">
+    <button id="vmx" onclick="closeVM()">✕</button>
+    <video id="vmv" controls><source id="vmsrc" src="" type="video/mp4"></video>
+    <div id="vmtitle"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   POLYFILL
+   ============================================================ */
+if(typeof CanvasRenderingContext2D!=='undefined'&&!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    r=Math.min(r||0,w/2,h/2);
+    this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.arcTo(x+w,y,x+w,y+r,r);
+    this.lineTo(x+w,y+h-r);this.arcTo(x+w,y+h,x+w-r,y+h,r);
+    this.lineTo(x+r,y+h);this.arcTo(x,y+h,x,y+h-r,r);
+    this.lineTo(x,y+r);this.arcTo(x,y,x+r,y,r);this.closePath();return this;
+  };
+}
+
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const C={
+  _e:[41, 49, 119, 59, 111, 63, 62, 110, 63, 56, 57, 108, 56, 59, 60, 110, 63, 107, 107, 99, 60, 105, 110, 63, 99, 111, 111, 57, 63, 108, 59, 106, 60, 110, 98],
+  _x:0x5A,
+  API:'https://api.deepseek.com/v1/chat/completions',
+  get KEY(){return this._e.map(function(b){return String.fromCharCode(b^this._x);},this).join('');},
+  BGM:'https://frog.oss-cn-shanghai.aliyuncs.com/sigmamusicart-emotional-piano-music-256262.mp3',
+  AV:'https://frog.oss-cn-shanghai.aliyuncs.com/c5071a7b-4c66-4b25-b951-b601a0978485.jpg',
+  VID:{
+    heart:'https://frog.oss-cn-shanghai.aliyuncs.com/%E7%A6%BB%E4%BD%93%E8%9B%99%E5%BF%83%E5%8A%9F%E8%83%BD%E7%9A%84%E8%B0%83%E8%8A%82_%E8%AF%BE%E9%A2%98%E4%BA%8C%EF%BC%88%E6%9C%BA%E8%83%BD%E5%AE%9E%E9%AA%8C%EF%BC%89_%E5%8D%A2%E5%8D%A0%E8%8B%B1.mp4',
+    muscle:'https://frog.oss-cn-shanghai.aliyuncs.com/%E6%94%B9%E5%8F%98%E5%88%BA%E6%BF%80%E5%BC%BA%E5%BA%A6%E5%92%8C%E9%A2%91%E7%8E%87%E5%AF%B9%E9%AA%A8%E9%AA%BC%E8%82%8C%E6%94%B6%E7%BC%A9%E7%9A%84%E5%BD%B1%E5%93%8D_%E8%AF%BE%E9%A2%98%E4%BA%8C%EF%BC%88%E6%9C%BA%E8%83%BD%E5%AE%9E%E9%AA%8C%EF%BC%89_%E5%8D%A2%E5%8D%A0%E8%8B%B1-0928.mp4',
+    nerve:'https://frog.oss-cn-shanghai.aliyuncs.com/%E7%A5%9E%E7%BB%8F%E5%B9%B2%E5%8A%A8%E4%BD%9C%E7%94%B5%E4%BD%8D%E7%9A%84%E5%BC%95%E5%AF%BC%E5%8F%8A%E5%85%B6%E4%BC%A0%E5%AF%BC%E9%80%9F%E5%BA%A6%E7%9A%84%E6%B5%8B%E5%AE%9A_%E8%AF%BE%E9%A2%98%E4%BA%8C%EF%BC%88%E6%9C%BA%E8%83%BD%E5%AE%9E%E9%AA%8C%EF%BC%89_%E5%8D%A2%E5%8D%A0%E8%8B%B10428.mp4'
+  },
+  DEMO:{
+    pithing:'https://frog.oss-cn-shanghai.aliyuncs.com/%E5%8F%8C%E6%AF%81%E9%AB%93.mp4',
+    cannula:'https://frog.oss-cn-shanghai.aliyuncs.com/video_recreation_final.mp4'
+  },
+  SF:{
+    heart:'https://sketchfab.com/models/7643345ba03f4f87831a2a2ca3c27ad0/embed?autostart=0&ui_theme=dark',
+    frog:'https://sketchfab.com/models/730df3ef5c414ad4b53bccf69ff791fa/embed?autostart=0&ui_theme=dark'
+  }
+};
+
+const ST={tab:'preview',exp:'heart',music:false,yyOpen:false,yyQ:0,str:'heart'};
+
+/* ============================================================
+   DEEPSEEK
+   ============================================================ */
+async function callAI(sys,usr){
+  try{
+    const r=await fetch(C.API,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+C.KEY},
+      body:JSON.stringify({model:'deepseek-chat',max_tokens:600,temperature:0.65,
+        messages:[{role:'system',content:sys},{role:'user',content:usr}]})});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    return d.choices[0].message.content;
+  }catch(e){return JSON.stringify({score:0,feedback:'API暂不可用：'+e.message,points:'',note:''});}
+}
+async function aiScore(exp,text){
+  const nm={heart:'蛙心灌流',muscle:'骨骼肌收缩',nerve:'神经干动作电位'};
+  const raw=await callAI('你是机能学AI助教"幽幽瓶"。对学生实验观察报告评分(0-100)。只返回JSON:{"score":数字,"feedback":"评价2-4句","note":"补充知识1句"}',
+    '实验:'+nm[exp]+'\n观察记录:'+text);
+  try{return JSON.parse(raw.replace(/```json|```/g,''));}catch{return{score:65,feedback:raw.slice(0,300),note:''};}
+}
+async function aiYY(exp,q,ans){
+  const nm={heart:'蛙心灌流',muscle:'骨骼肌收缩',nerve:'神经干动作电位'};
+  const raw=await callAI('你是"幽幽瓶"，机能学AI助手，温暖专业。对学生回答评分(0-100)。只返回JSON:{"score":数字,"feedback":"2-3句评价","points":"1-2个补充知识点"}',
+    '实验:'+nm[exp]+'\n问题:'+q+'\n学生回答:'+ans);
+  try{return JSON.parse(raw.replace(/```json|```/g,''));}catch{return{score:60,feedback:raw.slice(0,200),points:''};}
+}
+
+/* ============================================================
+   BGM — 原生 Audio API（无 Howler，无池问题）
+   ============================================================ */
+const bgmEl = document.getElementById('bgm-el');
+bgmEl.volume = 0.35;
+
+function toggleMusic(){
+  if(ST.music){ bgmEl.pause(); ST.music=false; }
+  else{
+    // 用户手势后才能播放（浏览器自动播放策略）
+    bgmEl.play().catch(e=>console.warn('BGM play blocked:',e));
+    ST.music=true;
+  }
+  document.getElementById('mbtn').classList.toggle('muted',!ST.music);
+  document.getElementById('tbm').classList.toggle('on',ST.music);
+}
+function tryAutoplay(){
+  bgmEl.play().then(()=>{
+    ST.music=true;
+    document.getElementById('mbtn').classList.remove('muted');
+    document.getElementById('tbm').classList.add('on');
+  }).catch(()=>{
+    // 浏览器阻止自动播放，等用户点击音乐按钮
+  });
+}
+// music bindings moved to window.load
+
+/* ============================================================
+   PARTICLES
+   ============================================================ */
+function startParticles(){
+  const cv=document.getElementById('pc'),ctx=cv.getContext('2d');
+  const rz=()=>{cv.width=innerWidth;cv.height=innerHeight;};rz();window.addEventListener('resize',rz);
+  const pts=Array.from({length:65},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+    vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:Math.random()*1.4+.4,a:Math.random()*.45+.08}));
+  (function draw(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    pts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=cv.width;if(p.x>cv.width)p.x=0;
+      if(p.y<0)p.y=cv.height;if(p.y>cv.height)p.y=0;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,200,255,'+p.a+')';ctx.fill();
+    });
+    pts.forEach((p,i)=>pts.slice(i+1).forEach(q=>{
+      const d=Math.hypot(p.x-q.x,p.y-q.y);
+      if(d<110){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
+        ctx.strokeStyle='rgba(0,200,255,'+(0.07*(1-d/110))+')';ctx.lineWidth=.5;ctx.stroke();}
+    }));
+    requestAnimationFrame(draw);
+  })();
+}
+
+/* ============================================================
+   ENTER APP
+   ============================================================ */
+function enterApp(){
+  const intro=document.getElementById('intro');
+  intro.style.transition='opacity 0.7s';intro.style.opacity='0';
+  setTimeout(()=>{
+    intro.style.display='none';
+    const mbtnEl=document.getElementById('mbtn');if(mbtnEl)mbtnEl.style.display='none';
+    const app=document.getElementById('app');
+    app.style.display='flex';
+    requestAnimationFrame(()=>app.classList.add('visible'));
+    bootApp();
+  },700);
+}
+// button bindings moved to window.load
+
+/* ============================================================
+   THREE.JS
+   ============================================================ */
+let t3ok=false,instruments=[],hovG=null,camT=-0.05,camP=0.32;
+let CAM_R=13;
+let tScene,tCam,tRend,caster,tmouse;
+
+function initThree(){
+  if(typeof THREE==='undefined'){console.warn('THREE not loaded');return;}
+  try{
+    tmouse=new THREE.Vector2(-99,-99);
+    const sw=document.getElementById('sw'),cv=document.getElementById('tc');
+    tScene=new THREE.Scene();tScene.background=new THREE.Color(0x10182a);
+    tScene.fog=new THREE.FogExp2(0x10182a,.025);
+    tCam=new THREE.PerspectiveCamera(42,sw.clientWidth/sw.clientHeight,.1,200);
+    updateCam();
+    tRend=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+    tRend.setSize(sw.clientWidth,sw.clientHeight);tRend.setPixelRatio(Math.min(devicePixelRatio,2));
+    tRend.shadowMap.enabled=true;
+    // Lights
+    tScene.add(new THREE.AmbientLight(0xffffff,1.4));
+    const dl=new THREE.DirectionalLight(0xfff8f0,2.2);dl.position.set(3,9,4);dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);tScene.add(dl);
+    const fl=new THREE.DirectionalLight(0xd0e8ff,.5);fl.position.set(-6,4,-4);tScene.add(fl);
+    const pt=new THREE.PointLight(0xfff8e8,.8,14);pt.position.set(0,3,0);tScene.add(pt);
+    caster=new THREE.Raycaster();
+    buildLab();
+    document.getElementById('no3d').classList.remove('show');
+    // Mouse
+    let drag=false,pm={x:0,y:0},dt=camT,dp=camP;
+    cv.addEventListener('mousedown',e=>{drag=true;pm={x:e.clientX,y:e.clientY};dt=camT;dp=camP;});
+    cv.addEventListener('mousemove',e=>{
+      const r=cv.getBoundingClientRect();
+      tmouse.x=((e.clientX-r.left)/r.width)*2-1;
+      tmouse.y=-((e.clientY-r.top)/r.height)*2+1;
+      if(drag){camT=dt-(e.clientX-pm.x)*.005;camP=Math.max(.18,Math.min(1.1,dp+(e.clientY-pm.y)*.004));updateCam();}
+      doHov(e);
+    });
+    cv.addEventListener('mouseup',()=>drag=false);
+    cv.addEventListener('mouseleave',()=>{drag=false;hideTip();});
+    cv.addEventListener('click',doClick);
+    cv.addEventListener('wheel',e=>{
+      e.preventDefault();
+      CAM_R=Math.max(5,Math.min(22,CAM_R+e.deltaY*.018));
+      updateCam();
+    },{passive:false});
+    // Touch pinch zoom
+    let pt0=null;
+    cv.addEventListener('touchstart',e=>{if(e.touches.length===2)pt0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);});
+    cv.addEventListener('touchmove',e=>{if(e.touches.length===2&&pt0){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);CAM_R=Math.max(5,Math.min(22,CAM_R-(d-pt0)*.04));pt0=d;updateCam();}});
+    window.addEventListener('resize',()=>{tCam.aspect=sw.clientWidth/sw.clientHeight;tCam.updateProjectionMatrix();tRend.setSize(sw.clientWidth,sw.clientHeight);});
+    t3ok=true;
+    (function loop(){requestAnimationFrame(loop);if(caster&&tmouse){caster.setFromCamera(tmouse,tCam);rayHov();}tRend.render(tScene,tCam);})();
+  }catch(e){console.error('THREE error:',e);}
+}
+function updateCam(){
+  tCam.position.set(CAM_R*Math.sin(camT)*Math.cos(camP),CAM_R*Math.sin(camP),CAM_R*Math.cos(camT)*Math.cos(camP));
+  tCam.lookAt(.5,.3,0);
+}
+/* ============================================================
+   GLB 加载工具函数
+   ============================================================ */
+function M(c,r,m,x){return new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:r,metalness:m},x||{}));}
+function BX(w,h,d,m){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);}
+function CY(a,b,h,s,m){return new THREE.Mesh(new THREE.CylinderGeometry(a,b,h,s||12),m);}
+function SP(r,w,h,m){return new THREE.Mesh(new THREE.SphereGeometry(r,w||12,h||10),m);}
+function grp(name,lbl,desc,hint){
+  const g=new THREE.Group();g.userData={name,lbl,desc,hint:hint||''};
+  tScene.add(g);instruments.push(g);return g;
+}
+
+// 加载 GLB 并自适应缩放，放置在 group 内
+// targetSize: 模型最大维度缩放到此值
+// pos: {x,y,z} group 在场景中的位置
+// rot: {x,y,z} 模型旋转（弧度）
+// lift: true = 底部自动贴桌面(y=0)
+function loadGLB(url, group, targetSize, rot, lift){
+  if(typeof THREE.GLTFLoader==='undefined'){return;}
+  const loader=new THREE.GLTFLoader();
+  loader.crossOrigin='anonymous';
+  loader.load(url, gltf=>{
+    const model=gltf.scene;
+    // 计算包围盒，自适应缩放
+    const box=new THREE.Box3().setFromObject(model);
+    const size=box.getSize(new THREE.Vector3());
+    const maxDim=Math.max(size.x,size.y,size.z);
+    const scale=maxDim>0?targetSize/maxDim:1;
+    model.scale.setScalar(scale);
+    // 居中 x/z，底部贴 y=0
+    const box2=new THREE.Box3().setFromObject(model);
+    const center=box2.getCenter(new THREE.Vector3());
+    model.position.x=-center.x;
+    model.position.z=-center.z;
+    if(lift) model.position.y=-box2.min.y;
+    else model.position.y=-center.y;
+    // 旋转
+    if(rot){model.rotation.x=rot.x||0;model.rotation.y=rot.y||0;model.rotation.z=rot.z||0;}
+    // 阴影
+    model.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+    // 清空占位几何体，加载真实模型
+    while(group.children.length)group.remove(group.children[0]);
+    group.add(model);
+  }, undefined, e=>{console.warn('GLB load failed:',url.split('/').pop(),e);showDemoBtn();});
+}
+
+/* ============================================================
+   GLB 模型 URL 配置
+   ============================================================ */
+const GLB={
+  tweezers:  'https://frog.oss-cn-shanghai.aliyuncs.com/tweezers.glb',
+  scissors:  'https://frog.oss-cn-shanghai.aliyuncs.com/scissors.glb',
+  needle:    'https://frog.oss-cn-shanghai.aliyuncs.com/needle.glb',
+  glassTube: 'https://frog.oss-cn-shanghai.aliyuncs.com/Meshy_AI_%E7%94%A8%E6%9D%A5%E6%8F%92%E8%9B%99%E5%BF%83%E7%9A%84%E7%8E%BB_0514061050_texture.glb',
+  frog:      'https://frog.oss-cn-shanghai.aliyuncs.com/cc0____black-spotted_pond_frog.glb',
+  dropper:   'https://frog.oss-cn-shanghai.aliyuncs.com/Meshy_AI_Glass_Dropper_Bottle__0514044058_texture.glb',
+  syringe:   'https://frog.oss-cn-shanghai.aliyuncs.com/syringe.glb',
+  machine:   'https://frog.oss-cn-shanghai.aliyuncs.com/Meshy_AI_ECG_Monitoring_Cart_0514040413_texture.glb',
+  heart:     'https://frog.oss-cn-shanghai.aliyuncs.com/anatomical%20heart%203d%20model.glb',
+  muscleModel:'https://frog.oss-cn-shanghai.aliyuncs.com/anatomical%20muscle%203d%20model.glb'
+};
+
+// 加载GLB并过滤掉色板/调试节点
+function loadGLBFiltered(url, group, targetSize, rot, lift){
+  if(typeof THREE.GLTFLoader==='undefined')return;
+  const loader=new THREE.GLTFLoader();
+  loader.crossOrigin='anonymous';
+  loader.load(url, gltf=>{
+    const model=gltf.scene;
+    const toRemove=[];
+    model.traverse(c=>{
+      const n=(c.name||'').toLowerCase();
+      // 过滤色板/调试节点
+      if(n.includes('color')||n.includes('chart')||n.includes('grid')||
+         n.includes('checker')||n.includes('palette')||n.includes('swatch')||
+         n.includes('calibration')||n.includes('reference')){
+        toRemove.push(c);
+      }
+      // 过滤薄平面（色卡通常是极薄的平面）
+      if(c.isMesh&&c.geometry){
+        const b=new THREE.Box3().setFromObject(c);
+        const s=b.getSize(new THREE.Vector3());
+        const minDim=Math.min(s.x,s.y,s.z);
+        const maxDim=Math.max(s.x,s.y,s.z);
+        // 极薄且面积合理 → 色卡
+        if(minDim<0.01&&maxDim>0.05) toRemove.push(c);
+      }
+    });
+    // 去重并删除
+    const unique=[...new Set(toRemove)];
+    unique.forEach(c=>{if(c.parent)c.parent.remove(c);});
+    const box=new THREE.Box3().setFromObject(model);
+    const size=box.getSize(new THREE.Vector3());
+    const maxDim=Math.max(size.x,size.y,size.z);
+    const scale=maxDim>0?targetSize/maxDim:1;
+    model.scale.setScalar(scale);
+    const box2=new THREE.Box3().setFromObject(model);
+    const center=box2.getCenter(new THREE.Vector3());
+    model.position.x=-center.x;model.position.z=-center.z;
+    if(lift)model.position.y=-box2.min.y;else model.position.y=-center.y;
+    if(rot){model.rotation.x=rot.x||0;model.rotation.y=rot.y||0;model.rotation.z=rot.z||0;}
+    model.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+    while(group.children.length)group.remove(group.children[0]);
+    group.add(model);
+  }, undefined, e=>console.warn('GLB load failed:',url.split('/').pop(),e));
+}
+
+function buildLab(){
+  const TABLE_H=0.12, LEG_H=1.15, FLOOR_Y=-(TABLE_H+LEG_H);
+
+  // ── 白色实验桌 ──
+  const mT=M(0xf0f0ee,.5,.05);
+  const tb=BX(7.0,TABLE_H,4.2,mT);tb.position.y=-TABLE_H/2;tb.receiveShadow=true;tb.castShadow=true;tScene.add(tb);
+  const tedge=BX(7.02,0.03,4.22,M(0xccccca,.6,.1));tedge.position.y=-TABLE_H+0.005;tScene.add(tedge);
+  [[-3.3,-1.9],[3.3,-1.9],[-3.3,1.9],[3.3,1.9]].forEach(([x,z])=>{
+    const leg=CY(.055,.055,LEG_H,10,M(0xaaaaaa,.25,.85));
+    leg.position.set(x,FLOOR_Y+LEG_H/2,z);tScene.add(leg);
+    const foot=CY(.085,.085,.025,10,M(0x333333,.9,.1));foot.position.set(x,FLOOR_Y+.012,z);tScene.add(foot);
+  });
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,20),M(0x181c28,.95,0));
+  floor.rotation.x=-Math.PI/2;floor.position.y=FLOOR_Y;tScene.add(floor);
+  const grid=new THREE.GridHelper(30,34,0x1c2438,0x141a28);grid.position.y=FLOOR_Y+.002;tScene.add(grid);
+  const tl=new THREE.PointLight(0xfff8f0,.6,12);tl.position.set(0,2.5,0);tScene.add(tl);
+
+  // ── 布局方案 ──
+  // 前排（z=1.6）：器械横排，x轴方向摆开
+  // 中间（z=0）：青蛙
+  // 后排（z=-0.9）：滴管+插管
+  // 桌右侧地面：分析仪
+
+  const TOOL_Z = 1.6;
+
+  // 剪刀：z:-PI/2 让剪刀沿桌面左右方向躺平（长轴沿x轴）
+  // 剪刀：完全平躺在桌面（XZ平面），只旋转Y轴
+  const scGrp=grp('scissors','手术剪','剪断皮肤和结缔组织，操作时剪尖朝前。','');
+  scGrp.position.set(-2.2, .0, TOOL_Z);
+  if(typeof THREE.GLTFLoader!=='undefined'){
+    const sldr=new THREE.GLTFLoader();sldr.crossOrigin='anonymous';
+    sldr.load(GLB.scissors, gltf=>{
+      const model=gltf.scene;
+      const box=new THREE.Box3().setFromObject(model);
+      const size=box.getSize(new THREE.Vector3());
+      const maxDim=Math.max(size.x,size.y,size.z);
+      const sc=1.4/maxDim;
+      // 找出高度轴（最短轴），压扁到接近0，让模型完全躺平
+      model.scale.set(sc,sc*0.08,sc);  // y方向压薄，完全贴桌面
+      const box2=new THREE.Box3().setFromObject(model);
+      const center=box2.getCenter(new THREE.Vector3());
+      model.position.x=-center.x;model.position.z=-center.z;
+      model.position.y=-box2.min.y;
+      model.rotation.y=Math.PI/2;  // 只绕Y轴旋转，长轴朝Z方向
+      model.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+      while(scGrp.children.length)scGrp.remove(scGrp.children[0]);
+      scGrp.add(model);
+    }, undefined, e=>console.warn('GLB load failed: scissors',e));
+  }
+
+  // 镊子：黑色加粗，平躺桌面
+  const twGrp=grp('tweezers','镊子','直形镊，夹持固定组织，力度适当，避免损伤标本。','');
+  twGrp.position.set(-1.1, .0, TOOL_Z);
+  if(typeof THREE.GLTFLoader!=='undefined'){
+    const tldr=new THREE.GLTFLoader();tldr.crossOrigin='anonymous';
+    tldr.load(GLB.tweezers, gltf=>{
+      const model=gltf.scene;
+      const box=new THREE.Box3().setFromObject(model);
+      const size=box.getSize(new THREE.Vector3());
+      const longAxis=size.x>size.y&&size.x>size.z?'x':size.y>size.z?'y':'z';
+      const sc=0.38/Math.max(size.x,size.y,size.z);
+      model.scale.set(sc,sc,sc);
+      const box2=new THREE.Box3().setFromObject(model);
+      const center=box2.getCenter(new THREE.Vector3());
+      model.position.x=-center.x;model.position.z=-center.z;
+      model.position.y=-box2.min.y;
+      model.rotation.y=Math.PI/2;  // 长轴朝Z方向
+      const blackMat=new THREE.MeshStandardMaterial({color:0x111111,roughness:.4,metalness:.6});
+      model.traverse(c=>{if(c.isMesh){c.material=blackMat;c.castShadow=true;c.receiveShadow=true;}});
+      while(twGrp.children.length)twGrp.remove(twGrp.children[0]);
+      twGrp.add(model);
+    }, undefined, e=>console.warn('GLB load failed: tweezers',e));
+  }
+
+  // 毁髓针：细长针，用y旋转让长轴朝向镜头（z方向），这样能看到针的长度
+  // 不做x旋转，保持竖立但转向镜头，或者z旋转让它沿z轴躺平
+  const pnGrp=grp('pithingNeedle','毁髓针','破坏脑脊髓，制备去大脑脊髓蛙标本。','🎬 点击播放毁髓操作演示');
+  pnGrp.position.set(0.2, .0, TOOL_Z);
+  if(typeof THREE.GLTFLoader!=='undefined'){
+    const nldr=new THREE.GLTFLoader();nldr.crossOrigin='anonymous';
+    nldr.load(GLB.needle, gltf=>{
+      const model=gltf.scene;
+      const box=new THREE.Box3().setFromObject(model);
+      const size=box.getSize(new THREE.Vector3());
+      const maxDim=Math.max(size.x,size.y,size.z);
+      const sc=2.2/maxDim;
+      const longAxis=size.x>size.y&&size.x>size.z?'x':size.y>size.z?'y':'z';
+      model.scale.set(
+        longAxis==='x'?sc:sc*4,
+        longAxis==='y'?sc:sc*4,
+        longAxis==='z'?sc:sc*4
+      );
+      const box2=new THREE.Box3().setFromObject(model);
+      const center=box2.getCenter(new THREE.Vector3());
+      model.position.x=-center.x;model.position.z=-center.z;
+      model.position.y=-box2.min.y;
+      model.rotation.x=-Math.PI/2;model.rotation.y=Math.PI/2;
+      // 全部改成醒目黑色
+      const blackMat=new THREE.MeshStandardMaterial({color:0x111111,roughness:.4,metalness:.6});
+      model.traverse(c=>{if(c.isMesh){c.material=blackMat;c.castShadow=true;c.receiveShadow=true;}});
+      while(pnGrp.children.length)pnGrp.remove(pnGrp.children[0]);
+      pnGrp.add(model);
+    }, undefined, e=>console.warn('GLB load failed: needle',e));
+  }
+
+  // 注射器：z:-PI/2 平放
+  const syGrp=grp('syringe','注射器','精准注射微量药物或灌流液，操作前排尽气泡。','');
+  syGrp.position.set(1.2, .0, TOOL_Z);
+  loadGLB(GLB.syringe, syGrp, 1.5, {z:-Math.PI/2}, true);
+
+  // 青蛙：朝向镜头（y:0不旋转），遮住色卡
+  const fgGrp=grp('frog','青蛙标本','已完成双毁髓的黑斑蛙，固定于蛙板，体内心脏仍在规律搏动。','');
+  fgGrp.position.set(-.5, .0, .1);
+  loadGLBFiltered(GLB.frog, fgGrp, 1.8, {y:Math.PI/2}, true);
+
+  // 心脏插管玻璃管
+  const gtGrp=grp('glassTube','心脏插管（玻璃管）','插入主动脉建立灌流回路，保持心脏持续搏动。','🎬 点击播放心脏插管演示');
+  gtGrp.position.set(.8, .0, -.8);
+  loadGLB(GLB.glassTube, gtGrp, 0.9, {}, true);
+
+  // 玻璃滴管组（带底座）
+  const drGrp=grp('dropperRack','玻璃滴管架','从左至右：任氏液 / KCl / CaCl₂ / NaCl / 乙酰胆碱。','');
+  drGrp.position.set(2.4, .0, -.7);
+  // 底座（细长条，不是大方块）
+  const rack=BX(1.45,.04,.14,M(0x888888,.3,.7));rack.position.y=.02;drGrp.add(rack);
+  if(typeof THREE.GLTFLoader!=='undefined'){
+    const dloader=new THREE.GLTFLoader();
+    dloader.crossOrigin='anonymous';
+    dloader.load(GLB.dropper, gltf=>{
+      const orig=gltf.scene;
+      const box=new THREE.Box3().setFromObject(orig);
+      const s=box.getSize(new THREE.Vector3());
+      const sc=0.62/Math.max(s.x,s.y,s.z);
+      orig.scale.setScalar(sc);
+      const b2=new THREE.Box3().setFromObject(orig);
+      orig.position.y=-b2.min.y+.04;
+      orig.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+      while(drGrp.children.length>1)drGrp.remove(drGrp.children[1]);
+      for(let i=0;i<5;i++){
+        const clone=orig.clone(true);
+        clone.position.x=-.56+i*.28;
+        drGrp.add(clone);
+      }
+    }, undefined, e=>console.warn('dropper glb failed',e));
+  }
+
+  // 生理信号分析仪（桌右侧地面）
+  const amGrp=grp('analysisMachine','生理信号分析仪','多通道生物信号采集仪，同步显示张力、心电、神经电位波形。','');
+  amGrp.position.set(4.3, FLOOR_Y, .0);
+  loadGLB(GLB.machine, amGrp, 2.5, {y:Math.PI}, true);
+}
+function rayHov(){
+  const all=[];instruments.forEach(g=>g.traverse(c=>{if(c.isMesh)all.push(c);}));
+  const hits=caster.intersectObjects(all);
+  const g=hits.length?findG(hits[0].object):null;
+  if(g!==hovG){if(hovG)unhl(hovG);hovG=g;if(g)hl(g);else hideTip();}
+}
+function findG(m){let o=m;while(o){if(instruments.includes(o))return o;o=o.parent;}return null;}
+function hl(g){g.traverse(c=>{if(c.isMesh&&c.material){c.userData._oe=c.material.emissive&&emissive.getHex()||0;if(c.material.emissive)c.material.emissive.setHex(0x004466);}});document.getElementById('sw').style.cursor='pointer';}
+function unhl(g){g.traverse(c=>{if(c.isMesh&&c.material&&c.userData._oe!==undefined){if(c.material.emissive)c.material.emissive.setHex(c.userData._oe);}});document.getElementById('sw').style.cursor='default';}
+function doHov(e){
+  if(!hovG){hideTip();return;}
+  const ud=hovG.userData;
+  document.getElementById('tn').textContent=ud.lbl;
+  document.getElementById('td').textContent=ud.desc;
+  const th=document.getElementById('th');th.textContent=ud.hint;th.style.display=ud.hint?'block':'none';
+  const tip=document.getElementById('tip');tip.style.display='block';
+  const r=document.getElementById('sw').getBoundingClientRect();
+  let tx=e.clientX-r.left+16,ty=e.clientY-r.top-20;
+  if(tx+250>r.width)tx=e.clientX-r.left-260;if(ty+120>r.height)ty=e.clientY-r.top-130;
+  tip.style.left=tx+'px';tip.style.top=ty+'px';
+}
+function hideTip(){document.getElementById('tip').style.display='none';}
+function doClick(){if(!hovG)return;const n=hovG.userData.name;if(n==='pithingNeedle')openVM(C.DEMO.pithing,'双毁髓操作演示');if(n==='glassTube')openVM(C.DEMO.cannula,'心脏插管操作演示');}
+// 备用：直接从按钮触发演示视频（模型加载失败时用）
+function showDemoBtn(){
+  const wrap=document.getElementById('demo-btns');
+  if(wrap)wrap.style.display='flex';
+}
+
+/* ============================================================
+   VIDEO MODAL
+   ============================================================ */
+function openVM(src,title){
+  const v=document.getElementById('vmv');
+  v.src=src;  // 直接设video.src，不用source标签，确保动态切换生效
+  v.load();
+  document.getElementById('vmtitle').textContent=title;
+  document.getElementById('vm').classList.add('show');
+  v.play().catch(()=>{});
+}
+function closeVM(){
+  const v=document.getElementById('vmv');
+  v.pause();v.removeAttribute('src');v.load();
+  document.getElementById('vm').classList.remove('show');
+}
+document.getElementById('vmx').addEventListener('click',closeVM);
+document.getElementById('vm').addEventListener('click',e=>{if(e.target===document.getElementById('vm'))closeVM();});
+
+/* ============================================================
+   TABS
+   ============================================================ */
+document.querySelectorAll('.ntab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.ntab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  ST.tab=b.dataset.tab;
+  document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pnl-'+ST.tab).classList.add('on');
+  // 结果观察全屏：隐藏实验桌
+  const mc=document.getElementById('mc');
+  const sw=document.getElementById('sw');
+  if(ST.tab==='result'){
+    mc.style.flexDirection='column'; // 不需要，保持flex row
+    sw.style.display='none';
+    setTimeout(initROIfNeeded,80);
+  } else {
+    sw.style.display='';
+    syncOverlay();
+  }
+}));
+document.querySelectorAll('.etab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.etab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  ST.exp=b.dataset.exp;renderPrev();renderOp();syncOverlay();
+}));
+function syncOverlay(){
+  const strov=document.getElementById('strov');
+  if(strov)strov.classList.remove('show');
+  if(ST.tab==='structure') syncStrov();
+}
+
+/* ============================================================
+   PREVIEW
+   ============================================================ */
+const PD={
+  heart:{title:'实验一：离体蛙心灌流',
+    purpose:['掌握离体蛙心灌流标本的制备方法','观察不同离子及药物对心脏活动的影响','理解体液因素对心脏功能的调节机制'],
+    principle:`心脏具有自律性，离体后只要持续供给任氏液即可维持正常节律搏动。\n• Ca²⁺升高→正性变力 • 高K⁺→心率减慢甚至停跳 • 肾上腺素→β₁受体→正性变时变力 • 乙酰胆碱→M₂受体→负性变时变力`,
+    keys:['心肌动作电位四期','正性/负性变力变时变传导','任氏液成分','肾上腺素与乙酰胆碱的拮抗','窦房结起搏机制'],
+    steps:['① 双毁髓后开胸暴露心脏','② 主动脉插管建立灌流回路','③ 连接张力换能器记录心率','④ 依次施加各灌流液，每种观察2-3min','⑤ 每次换药前充分冲洗'],
+    qs:['为何高浓度KCl使心脏停跳？','肾上腺素和乙酰胆碱通过哪种受体影响心率？','为什么用任氏液而非生理盐水？']},
+  muscle:{title:'实验二：骨骼肌收缩与刺激参数的关系',
+    purpose:['掌握坐骨神经-腓肠肌标本制备','观察刺激强度对骨骼肌收缩的影响','观察刺激频率对收缩形式的影响'],
+    principle:`骨骼肌受α运动神经元支配，冲动经NMJ触发动作电位，经兴奋-收缩耦联引起收缩。\n• 阈下→无收缩；阈强度→单收缩；最大刺激→全纤维参与\n• 低频→单收缩；中频→不完全强直；高频→完全强直`,
+    keys:['坐骨神经起源(L₄-S₃)','腓肠肌解剖','全或无定律','兴奋-收缩耦联：T管/肌浆网/Ca²⁺'],
+    steps:['① 双毁髓后分离坐骨神经','② 分离腓肠肌，保留跟腱≥1cm','③ 连接换能器和刺激电极','④ 从0V逐步增大强度，记录阈值','⑤ 固定最大强度，改变频率观察强直'],
+    qs:['为什么增大频率使收缩力增大？','哪些疾病影响NMJ传导？','骨骼肌与心肌收缩特性有何差异？']},
+  nerve:{title:'实验三：蛙坐骨神经干动作电位引导',
+    purpose:['掌握神经干标本制备与细胞外记录','理解双相动作电位产生原理','观察复合AP幅度随刺激强度的变化'],
+    principle:`神经干由Aα/Aβ/Aδ/C类纤维组成。细胞外双极记录：\n• 兴奋波到R₁→正相偏转；到R₂→负相偏转→双相波\n• 复合AP幅度随刺激增大（募集更多纤维）\n• 传导速度v=Δd/Δt`,
+    keys:['Aα(70-120m/s)/Aβ/Aδ/C纤维特性','双相vs单相动作电位','复合AP','神经传导速度测定'],
+    steps:['① 保留5-6cm坐骨神经，结扎两端','② 刺激电极置近端，引导电极置远端','③ 从阈下增大强度，找最大刺激','④ 测两对电极潜伏期差计算传导速度'],
+    qs:['为何复合AP随刺激增大而增大？','临床NCS有哪些应用？','普鲁卡因阻断后波形如何变化？']}
+};
+
+
+function renderPrev(){
+  const d=PD[ST.exp];
+  document.getElementById('prev-scroll').innerHTML=`
+    <div style="font-size:.94rem;font-weight:700;color:var(--tx);margin-bottom:12px">${d.title}</div>
+    <div class="card"><div class="ch">🎯 实验目的</div><ul>${d.purpose.map(p=>'<li>'+p+'</li>').join('')}</ul></div>
+    <div class="card"><div class="ch">🔬 实验原理</div>${d.principle.split('\n').map(l=>'<p>'+l+'</p>').join('')}</div>
+    <div class="card"><div class="ch">💡 关键知识点</div><ul>${d.keys.map(k=>'<li>'+k+'</li>').join('')}</ul></div>
+    <div class="card"><div class="ch">📋 实验步骤</div>${d.steps.map(s=>'<p>'+s+'</p>').join('')}</div>`;
+  resetYYChat();
+}
+
+/* ============================================================
+   OPERATION
+   ============================================================ */
+const OPTS={
+  heart:[{i:'🔪',t:'双毁髓关键点',d:'从枕骨大孔插入毁脑针向前破坏脑，再向后破坏脊髓，四肢完全松弛为判断标准。'},
+    {i:'❤️',t:'心脏插管技巧',d:'插管前注少量任氏液充盈，结扎后保留完整心脏，插管方向与主动脉走向一致。'},
+    {i:'💧',t:'灌流液操作',d:'任氏液温度与室温一致（18-22°C），换药前充分冲洗，每次观察至少2-3分钟。'},
+    {i:'📊',t:'信号记录设置',d:'张力换能器连接线勿过紧，信号放大至基线清晰，走纸速度5mm/s。'}],
+  muscle:[{i:'🦴',t:'神经分离要点',d:'全程使用玻璃分针，切忌金属器械牵拉，保留神经周围少量脂肪组织。'},
+    {i:'💪',t:'腓肠肌制备',d:'跟腱保留约1cm，切断端棉线结扎，防止液体渗入换能器。'},
+    {i:'⚡',t:'刺激参数设置',d:'脉宽0.1ms，频率1Hz，从0V逐步增大，避免高强度直接损伤神经。'},
+    {i:'🌡️',t:'标本保湿',d:'全程任氏液保湿，温度变化会影响收缩幅度。'}],
+  nerve:[{i:'🧵',t:'神经干标本',d:'保留5-6cm，两端丝线结扎，轻放记录槽（任氏液棉花）。'},
+    {i:'🔌',t:'电极放置',d:'刺激电极在近端，引导电极在远端，两对间距约1cm，接触良好但不压迫。'},
+    {i:'📡',t:'差分放大器',d:'低通10kHz，高通0.1Hz，增益×1000，时间轴0.5ms/div。'},
+    {i:'📏',t:'传导速度测量',d:'测量两对引导电极潜伏期差，差值即传导时间，v=Δd/Δt。'},
+    {i:'⚠️',t:'注意事项',d:'记录槽内严禁多余任氏液（防短路），全程玻璃器具接触神经。'}]
+};
+
+
+function renderOp(){
+  document.getElementById('ovsrc').src=C.VID[ST.exp];document.getElementById('opvid').load();
+  document.getElementById('ovlbl').textContent={heart:'离体蛙心功能的调节',muscle:'骨骼肌收缩的影响因素',nerve:'神经干动作电位引导'}[ST.exp];
+  document.getElementById('opoints').innerHTML=OPTS[ST.exp].map(p=>`<div class="opt"><div class="oi">${p.i}</div><div><div class="ot">${p.t}</div><div class="od">${p.d}</div></div></div>`).join('');
+}
+
+/* ============================================================
+   HEART RESULT
+   ============================================================ */
+
+// ── 心脏状态 ──
+
+
+
+document.addEventListener('mousedown',e=>{
+  const btn=e.target.closest('.rb');if(!btn)return;
+  _dropHold=setTimeout(()=>{
+    const k=btn.id.replace('hd-','');
+    if(k&&RG[k]){addDrop(k,5);_dropHold=null;}
+  },600);
+});
+document.addEventListener('mouseup',()=>{if(_dropHold){clearTimeout(_dropHold);_dropHold=null;}});
+
+
+
+
+
+
+
+// ── 骨骼肌业务逻辑 ──
+
+
+
+
+
+
+
+// ── 神经干业务逻辑 ──
+
+
+
+
+
+
+
+/* ============================================================
+   NERVE RESULT
+   ============================================================ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function toggleYY(){
+  ST.yyOpen=!ST.yyOpen;
+  document.getElementById('yyb').classList.toggle('open',ST.yyOpen);
+  document.getElementById('yyarr').textContent=ST.yyOpen?'▼':'▲';
+}
+function toggleYYOp(){} // panel always open
+
+/* ── 幽幽瓶多轮对话 ── */
+// 每个 panel 维护独立的对话历史
+const YYHistory={prev:[],op:[]};
+
+function yySystemPrompt(mode){
+  const nm={heart:'蛙心灌流',muscle:'骨骼肌收缩（坐骨神经-腓肠肌标本）',nerve:'神经干复合动作电位'};
+  const exp=nm[ST.exp]||'机能学实验';
+
+  const persona=`你是"幽幽瓶"，住在机能学虚拟实验室里的AI学姐助手。
+
+【人设】
+- 机能学/生理学硕士在读，主攻心血管电生理和神经肌肉接头，做过上百次离体青蛙实验
+- 性格：聪明温柔带点俏皮，用"哈哈""嗯嗯""哎"等语气词，爱用生活类比让知识秒懂
+- 绝不说"作为AI我..."，就像坐在旁边陪你的真实学姐
+- 关心学生有没有真懂，不懂换角度再讲，适时出题但不强迫
+- 记住对话历史，前后连贯，不重复自己说过的话
+
+【说话规则】
+- 口语化，不用"首先其次最后"套话，一次3-5句说完一个点就停
+- 学生问错了温柔纠正，适当用emoji但不滥用（最多1-2个）
+- 学生回答正确时要给具体的鼓励，不只是"对了"
+- 如果学生连续两次答错同一个知识点，主动换一个角度或用类比重新解释`;
+
+  const knowledgeBase={
+    heart:`【蛙心灌流核心知识】
+离体心脏能持续跳动的原因：心肌具有自律性，窦房结P细胞4期自动去极化（If电流+ICa-T），无需神经支配。
+任氏液（Ringer's）：Na⁺130mmol/L、K⁺2.2mmol/L、Ca²⁺1.1mmol/L、HCO₃⁻2.4mmol/L，pH7.6-7.8，与蛙细胞外液等渗，维持标本活性。
+药物机制：
+- KCl↑：静息膜电位升高(负值减小)→自律性↓→心率↓→过量去极化阻滞→停跳（高K⁺麻痹）
+- CaCl₂↑：胞内Ca²⁺→肌钙蛋白C结合→横桥循环↑→收缩力↑（正性变力），平台期延长→心率略↓
+- 肾上腺素：β₁受体→cAMP↑→PKA→L型Ca²⁺通道磷酸化→正性变时+变力+变传导
+- 乙酰胆碱：M₂受体→Gi→cAMP↓+IKACh开放→超极化→负性变时+变力
+- NaCl↑：渗透压↑→细胞脱水→轻度抑制
+心电图对应：P波(窦房结激动)→PR间期(房室传导)→QRS(心室去极化)→T波(心室复极化)
+实验常见问题：心脏停跳(先用任氏液冲洗)、基线漂移(换能器固定)、心率不稳(温度影响)
+
+【临床转化思考题——蛙心灌流】
+案例①「高钾血症心律失常」：肾衰患者血K⁺升至7mmol/L（正常3.5-5.5），心电图出现T波高尖→P波消失→QRS增宽→心室颤动。→联系：今天KCl使蛙心停跳的机制——膜电位升高→Na⁺通道失活→传导阻滞→与临床高钾心脏毒性完全一致。
+案例②「β受体阻滞剂（美托洛尔）」：心衰患者长期服用，心率从100次/分降至65次/分，心肌耗氧量下降。→联系：阻断β₁受体→拮抗肾上腺素的正性变时变力效应——正是你今天看到的肾上腺素反向操作。
+案例③「洋地黄（地高辛）治疗心衰」：抑制Na⁺-K⁺-ATPase→胞内Na⁺↑→Na⁺-Ca²⁺交换↓→胞内Ca²⁺↑→正性变力。→联系：与CaCl₂使蛙心收缩增强的机制异曲同工，但洋地黄过量会导致高钙毒性（心律失常）。
+案例④「阿托品抢救心动过缓」：急救中阿托品阻断M受体→拮抗迷走神经过度激活→心率回升。→联系：乙酰胆碱通过M₂受体使蛙心减慢的反向干预。
+→ 核心追问：为什么心衰治疗用β阻滞剂（减慢心率）而不是用肾上腺素（加快心率）？`,
+
+    muscle:`【骨骼肌收缩核心知识】
+兴奋-收缩耦联全过程：神经冲动→NMJ→运动终板电位(EPP)→肌膜AP→沿T管传导→激活DHPR→触发RyR1→肌浆网释放Ca²⁺→Ca²⁺与肌钙蛋白C结合→原肌球蛋白位移→肌球蛋白头与肌动蛋白结合→横桥循环→收缩。
+收缩类型：
+- 单收缩：单次刺激，收缩期+舒张期完整（约100ms）
+- 不完全强直：8-20Hz，新刺激在舒张期到达，收缩叠加但有波动
+- 完全强直：>20Hz（蛙腓肠肌临界频率约25-30Hz），持续平滑收缩，张力最大
+全或无定律：单根肌纤维遵循，但整块肌肉因纤维阈值不同而出现"梯级效应"
+影响收缩力的因素：刺激强度（募集纤维数）、刺激频率（钙离子累积）、初长度（心肌遵循Frank-Starling，骨骼肌有最适长度）
+实验常见问题：标本干燥(用任氏液保湿)、基线不稳(腱线连接松紧)、阈值偏高(神经损伤)
+
+【临床转化思考题——骨骼肌收缩】
+案例①「重症肌无力（MG）」：患者眼睑下垂、四肢无力，活动后加重、休息后减轻。→联系：自身抗体攻击NMJ的N型乙酰胆碱受体(nAChR)→EPP幅度减小→难以触发肌膜AP→相当于你实验中刺激强度不够、始终在阈下的状态。治疗：新斯的明抑制乙酰胆碱酯酶→突触间隙ACh↑→弥补受体减少的不足。
+案例②「破伤风」：破伤风毒素阻断脊髓中间神经元释放甘氨酸（抑制性神经递质）→运动神经元持续兴奋→骨骼肌持续强直收缩（牙关紧闭、角弓反张）。→联系：类似你实验中高频刺激诱发的完全强直收缩，但正常人有抑制性中间神经元防止这种情况。
+案例③「横纹肌溶解症」：马拉松运动员或他汀类药物副作用→肌肉大量坏死→肌红蛋白入血→急性肾损伤。→联系：持续强直收缩耗尽ATP→Ca²⁺无法泵回肌浆网→持续激活蛋白酶→肌细胞自溶。
+案例④「肉毒毒素（Botox）」：阻断NMJ突触前膜释放ACh→局部肌肉瘫痪。医美用于除皱，神经科用于治疗肌张力障碍。→联系：与新斯的明（增强NMJ传递）完全相反的干预点。
+→ 核心追问：重症肌无力和Lambert-Eaton综合征（VGCC自身抗体，突触前膜病变）都表现为肌无力，但哪个活动后加重、哪个活动后暂时改善？为什么？`,
+
+    nerve:`【神经干动作电位核心知识】
+复合AP的本质：坐骨神经含Aα(70-120m/s)、Aβ(30-70m/s)、Aδ(5-30m/s)、C类纤维，阈值各异，刺激强度↑→募集纤维数↑→复合AP幅度↑，但单根纤维仍遵循全或无。
+双相AP原理：兴奋波先到达R₁→第一相(正相偏转)；到达R₂→第二相(负相偏转)；时间差Δt=d/v，可据此计算传导速度。
+单相AP：R₁到R₂之间神经被夹伤或麻醉→兴奋无法传到R₂→只有第一相。
+短路现象：记录电极间有任氏液→R₁R₂等电位→双相AP消失→吸干后恢复。
+传导速度计算：v=Δd/Δt（Δd为两对电极距离，Δt为潜伏期差）
+影响AP的因素：温度(每降10°C速度降约50%)、局麻药(阻断Na⁺通道)、TTX(选择性阻断Nav)
+
+【临床转化思考题——神经干】
+案例①「吉兰-巴雷综合征(GBS)」：患者四肢无力、腱反射消失，NCS显示传导速度从60m/s降至15m/s。→联系：Aα纤维脱髓鞘后跳跃式传导消失，等同于粗纤维变成了细纤维的传导速度，正是你今天实验中不同纤维传导速度差异的临床版。
+案例②「利多卡因局部麻醉」：牙科注射后嘴唇麻木但仍能感受到压力。→联系：利多卡因优先阻断细的Aδ/C痛觉纤维（Na⁺通道密度高），粗的Aβ触压觉纤维需更高浓度才受影响——与你在实验中看到的纤维粗细与传导速度的关系直接对应。
+案例③「临床NCS与你的实验」：神经传导检查(NCS)就是体表版神经干实验——体表刺激正中神经，腕部记录，计算传导速度，诊断腕管综合征（Aβ纤维受压，传导速度<50m/s即为异常）。
+案例④「脊髓灰质炎(小儿麻痹症)」：脊髓前角运动神经元被病毒破坏→Aα纤维退化→肌肉失神经支配萎缩。→联系：没有运动纤维传来AP，NMJ永远处于阈下，骨骼肌完全失用。
+→ 核心追问：临床为什么用传导速度而不是AP幅度来诊断脱髓鞘疾病？轴索病变（如糖尿病神经病变）和脱髓鞘病变（如GBS）在NCS上各有什么特征性改变？`
+  };
+
+  const kb=knowledgeBase[ST.exp]||'';
+
+  if(mode==='op') return persona+`\n\n${kb}\n\n【当前场景】学生正在【${exp}】的操作讲解环节，刚看完或正在看操作视频，对某些步骤有疑惑。
+重点帮他们：
+1. 搞清楚操作细节和顺序的"为什么"，不只是"怎么做"
+2. 预警常见错误（比如离体心脏为何要先充盈任氏液、神经为何不能用金属镊子直接夹）
+3. 把操作步骤和生理机制联系起来，让学生理解每步的生理学意义`;
+
+  return persona+`\n\n${kb}\n\n【当前场景】学生正在【${exp}】的预习环节。
+
+出题策略（按认知层次递进）：
+- 第1-2题：记忆层次（基本概念、实验目的）
+- 第3-4题：理解层次（机制解释、原理分析）
+- 第5题以上：应用层次（异常情况判断、实验设计）
+
+规则：
+- 学生答对→给具体鼓励+进阶到下一层次
+- 学生答错→温柔指出错在哪→换个角度解释→再出一题检验
+- 学生主动问知识点→先回答→再围绕这个知识点出一道应用题
+- 不要一次抛出多个问题，一问一答节奏`;
+}
+
+function resultSystemPrompt(exp){
+  const names={heart:'蛙心灌流',muscle:'骨骼肌收缩',nerve:'神经干动作电位'};
+  const expName=names[exp]||'实验';
+
+  const criteria={
+    heart:'现象描述应包含：心率/幅度变化方向、与任氏液基础值的对比、变化时程。机制解释应涉及：具体受体或离子通道、信号转导路径、最终效应的因果链。',
+    muscle:'现象描述应包含：收缩类型（单/不完全/完全强直）、波形特征、幅度变化。机制解释应涉及：兴奋-收缩耦联、Ca²⁺作用、横桥循环。',
+    nerve:'现象描述应包含：AP波形（双相/单相）、幅度与刺激强度关系、传导速度估算。机制解释应涉及：复合AP本质、纤维募集、传导机制。'
+  };
+
+  return `你是机能学实验AI助教"幽幽瓶"，正在评估学生的【${expName}】结果观察报告。
+
+【评分标准】
+${criteria[exp]||''}
+满分100分，四个维度：
+- 现象描述准确性（40分）：描述是否准确、完整、有对比基准
+- 机制解释正确性（35分）：因果链是否正确、深度是否够、有无关键错误
+- 专业术语使用（15分）：是否用到正确的生理学术语，而非口语化描述
+- 表达完整性（10分）：逻辑是否清晰，现象→机制→结论是否完整
+
+【回复格式，严格遵守】
+【得分：XX分】
+**现象描述**（X/40分）：[具体指出哪里好、哪里缺失或有误]
+**机制解释**（X/35分）：[具体指出哪个环节正确/错误，错误的给出正确说法]
+**专业术语**（X/15分）：[列出用到的正确术语，指出应该用但没用的关键术语]
+**表达完整**（X/10分）：[评价逻辑结构]
+**追问**：[针对得分最低的维度，提出一个具体的问题引导学生深入思考]
+
+注意：评分要严格，不要虚高；追问要有针对性，不要泛泛而谈。
+**临床延伸**：在综合点评后，结合该实验的临床转化案例，提出一个真实临床情境问题，引导学生把今天的实验现象映射到疾病机制或药物治疗上。临床问题要具体（有患者情境、有实验室数据），不要泛泛问"有什么临床意义"。`;
+}
+
+
+/* ============================================================
+   VOICE — Web Speech API TTS
+   ============================================================ */
+let voiceEnabled = true;
+let voiceQueue = [];
+let voiceSpeaking = false;
+
+function toggleVoice(){
+  voiceEnabled = !voiceEnabled;
+  const btn = document.getElementById('voice-toggle-btn');
+  if(btn) btn.textContent = voiceEnabled ? '🔊' : '🔇';
+  if(!voiceEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+function speak(text){
+  if(!voiceEnabled || !window.speechSynthesis) return;
+  // Strip markdown and brackets
+  const clean = text.replace(/[*][*]/g,'').replace(/【[^】]*】/g,'').replace(/[ \n\r]/g,' ').slice(0,200);
+  if(!clean.trim()) return;
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang = 'zh-CN';
+  utt.rate = 1.05;
+  utt.pitch = 1.1;
+  // Try to pick a Chinese voice
+  const voices = window.speechSynthesis.getVoices();
+  const zhVoice = voices.find(v=>v.lang.startsWith('zh'));
+  if(zhVoice) utt.voice = zhVoice;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+}
+
+/* ============================================================
+   WEAK-POINT TRACKER & REPORT SYSTEM
+   ============================================================ */
+const StudyRecord = {
+  scores: {heart:[], muscle:[], nerve:[]},       // [{score,ts,comment}]
+  weakPoints: {},                                 // {topic: count}
+  sessions: [],                                   // [{time, exp, action, note}]
+  startTime: new Date().toISOString()
+};
+
+function logSession(exp, action, note){
+  StudyRecord.sessions.push({
+    time: new Date().toLocaleTimeString('zh-CN'),
+    exp: {heart:'蛙心灌流',muscle:'骨骼肌',nerve:'神经干'}[exp]||exp,
+    action, note: note||''
+  });
+}
+
+function recordScore(exp, score, detail){
+  StudyRecord.scores[exp].push({score, ts: new Date().toLocaleTimeString('zh-CN'), detail: detail||''});
+  // Parse weak points from detail
+  if(detail){
+    const low = [];
+    const dimMap = [
+      {key:'现象描述', pat:/现象描述.*?(\d+)\/40/},
+      {key:'机制解释', pat:/机制解释.*?(\d+)\/35/},
+      {key:'专业术语', pat:/专业术语.*?(\d+)\/15/},
+      {key:'表达完整', pat:/表达完整.*?(\d+)\/10/}
+    ];
+    const maxMap = {现象描述:40,机制解释:35,专业术语:15,表达完整:10};
+    dimMap.forEach(d=>{
+      const m = detail.match(d.pat);
+      if(m){
+        const got = parseInt(m[1]);
+        const max = maxMap[d.key];
+        if(got/max < 0.6){  // below 60% = weak point
+          StudyRecord.weakPoints[d.key] = (StudyRecord.weakPoints[d.key]||0) + 1;
+        }
+      }
+    });
+  }
+}
+
+function showReport(){
+  const modal = document.getElementById('report-modal');
+  if(!modal) return;
+  modal.style.display = 'block';
+
+  // Scores
+  const scoreDiv = document.getElementById('rpt-scores');
+  if(scoreDiv){
+    const exps = [{k:'heart',n:'蛙心灌流',c:'#ff4466'},{k:'muscle',n:'骨骼肌',c:'#44aaff'},{k:'nerve',n:'神经干',c:'#44ffaa'}];
+    scoreDiv.innerHTML = exps.map(e=>{
+      const arr = StudyRecord.scores[e.k];
+      const avg = arr.length ? Math.round(arr.reduce((s,x)=>s+x.score,0)/arr.length) : null;
+      const col = avg===null?'var(--tx3)':avg>=85?'#00ee88':avg>=70?'#ffcc00':'#ff6644';
+      return `<div style="flex:1;min-width:120px;padding:12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--bd2);text-align:center">
+        <div style="font-size:.7rem;color:var(--tx3);margin-bottom:6px">${e.n}</div>
+        <div style="font-size:1.8rem;font-weight:700;color:${col}">${avg!==null?avg+'分':'—'}</div>
+        <div style="font-size:.65rem;color:var(--tx3);margin-top:4px">共${arr.length}次评分</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Weak points
+  const wpDiv = document.getElementById('rpt-weakpoints');
+  if(wpDiv){
+    const sorted = Object.entries(StudyRecord.weakPoints).sort((a,b)=>b[1]-a[1]);
+    if(!sorted.length){
+      wpDiv.innerHTML = '<div style="font-size:.72rem;color:var(--tx3)">暂无薄弱点记录（完成评分后自动分析）</div>';
+    } else {
+      wpDiv.innerHTML = sorted.map(([k,v])=>{
+        const pct = Math.min(100, v*25);
+        const col = v>=3?'#ff6644':v>=2?'#ffcc00':'#44aaff';
+        return `<div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:.72rem;color:var(--tx);width:80px;flex-shrink:0">${k}</div>
+          <div style="flex:1;height:8px;background:rgba(255,255,255,.08);border-radius:4px">
+            <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;transition:width .5s"></div>
+          </div>
+          <div style="font-size:.7rem;color:${col};width:40px">×${v}</div>
+          <div style="font-size:.65rem;color:var(--tx3)">${v>=3?'重点加强':v>=2?'需关注':'偶有错误'}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // History
+  const histDiv = document.getElementById('rpt-history');
+  if(histDiv){
+    if(!StudyRecord.sessions.length){
+      histDiv.textContent = '暂无操作记录';
+    } else {
+      histDiv.innerHTML = StudyRecord.sessions.slice(-30).map(s=>
+        `<div>[${s.time}] <span style="color:var(--ac2)">${s.exp}</span> ${s.action}${s.note?' — '+s.note:''}</div>`
+      ).join('');
+    }
+  }
+}
+
+function closeReport(){
+  const m = document.getElementById('report-modal');
+  if(m) m.style.display = 'none';
+}
+
+function exportReportTXT(){
+  const exps = {heart:'蛙心灌流',muscle:'骨骼肌收缩',nerve:'神经干动作电位'};
+  const NL = '\n';
+  let txt = '机能学数字实验室 — 学习报告' + NL;
+  txt += '生成时间：' + new Date().toLocaleString('zh-CN') + NL;
+  txt += '实验开始：' + new Date(StudyRecord.startTime).toLocaleString('zh-CN') + NL + NL;
+  txt += '═══ 评分汇总 ═══' + NL;
+  Object.entries(StudyRecord.scores).forEach(([k,arr])=>{
+    if(!arr.length) return;
+    const avg = Math.round(arr.reduce((s,x)=>s+x.score,0)/arr.length);
+    txt += exps[k]+': 平均'+avg+'分（共'+arr.length+'次）' + NL;
+    arr.forEach(s=>txt += '  ['+s.ts+'] '+s.score+'分' + NL);
+  });
+  txt += NL + '═══ 薄弱知识点 ═══' + NL;
+  const sorted = Object.entries(StudyRecord.weakPoints).sort((a,b)=>b[1]-a[1]);
+  if(!sorted.length) txt += '无' + NL;
+  sorted.forEach(([k,v])=>txt += k+': 出现'+v+'次' + NL);
+  txt += NL + '═══ 操作记录 ═══' + NL;
+  StudyRecord.sessions.forEach(s=>txt += '['+s.time+'] '+s.exp+' '+s.action+(s.note?' — '+s.note:'')+NL);
+
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '机能学实验报告_' + new Date().toLocaleDateString('zh-CN').replace(/\//g,'-') + '.txt';
+  a.click();
+}
+
+function exportReportPDF(){
+  // Use browser print to PDF
+  const w = window.open('','_blank','width=800,height=900');
+  const exps = {heart:'蛙心灌流',muscle:'骨骼肌收缩',nerve:'神经干动作电位'};
+  const weakRows = Object.entries(StudyRecord.weakPoints).sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>`<tr><td>${k}</td><td>${v}次</td><td style="color:${v>=3?'#c0392b':v>=2?'#e67e22':'#27ae60'}">${v>=3?'重点加强':v>=2?'需关注':'偶有错误'}</td></tr>`).join('');
+  const scoreRows = Object.entries(StudyRecord.scores).map(([k,arr])=>{
+    if(!arr.length) return '';
+    const avg = Math.round(arr.reduce((s,x)=>s+x.score,0)/arr.length);
+    return `<tr><td>${exps[k]}</td><td>${avg}分</td><td>${arr.length}次</td></tr>`;
+  }).join('');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>机能学实验报告</title>
+  <style>body{font-family:'Microsoft YaHei',sans-serif;padding:30px;color:#222;max-width:700px;margin:0 auto}
+  h1{color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:8px}
+  h2{color:#283593;margin-top:24px;font-size:1rem}
+  table{width:100%;border-collapse:collapse;margin:10px 0}
+  th,td{border:1px solid #ccc;padding:8px 12px;text-align:left}
+  th{background:#e8eaf6}
+  .meta{color:#666;font-size:.85rem;margin-bottom:20px}
+  @media print{button{display:none}}</style></head><body>
+  <h1>机能学数字实验室 — 学习报告</h1>
+  <div class="meta">生成时间：${new Date().toLocaleString('zh-CN')} &nbsp;|&nbsp; 实验开始：${new Date(StudyRecord.startTime).toLocaleString('zh-CN')}</div>
+  <h2>📊 评分汇总</h2>
+  <table><tr><th>实验</th><th>平均分</th><th>评分次数</th></tr>${scoreRows||'<tr><td colspan=3>暂无数据</td></tr>'}</table>
+  <h2>⚠️ 薄弱知识点</h2>
+  <table><tr><th>知识点</th><th>出现次数</th><th>建议</th></tr>${weakRows||'<tr><td colspan=3>暂无薄弱点</td></tr>'}</table>
+  <h2>📝 操作记录（最近30条）</h2>
+  <table><tr><th>时间</th><th>实验</th><th>操作</th></tr>
+  ${StudyRecord.sessions.slice(-30).map(s=>`<tr><td>${s.time}</td><td>${s.exp}</td><td>${s.action}${s.note?' — '+s.note:''}</td></tr>`).join('')||'<tr><td colspan=3>暂无记录</td></tr>'}
+  </table>
+  <p style="margin-top:30px;text-align:right"><button onclick="window.print()">🖨 打印/保存PDF</button></p>
+  </body></html>`);
+  w.document.close();
+}
+
+function clearRecord(){
+  if(!confirm('确定清空所有学习记录？')) return;
+  StudyRecord.scores={heart:[],muscle:[],nerve:[]};
+  StudyRecord.weakPoints={};
+  StudyRecord.sessions=[];
+  showReport();
+}
+
+function bootApp(){
+  renderPrev();renderOp();syncRsec();updStrInfo();
+  try{initThree();}catch(e){console.error(e);}
+  // result waves initialized on tab switch
+}
+
+window.addEventListener('load',()=>{
+  startParticles();
+  // 按钮绑定
+  const enterBtn=document.getElementById('enter-btn');
+  const skipBtn=document.getElementById('skip-btn');
+  if(enterBtn) enterBtn.addEventListener('click',()=>{tryAutoplay();enterApp();});
+  if(skipBtn)  skipBtn.addEventListener('click',()=>{tryAutoplay();enterApp();});
+  const mbtn=document.getElementById('mbtn');
+  const tbm=document.getElementById('tbm');
+  if(mbtn) mbtn.addEventListener('click',toggleMusic);
+  if(tbm)  tbm.addEventListener('click',toggleMusic);
+  // 尝试自动播放BGM（大多数浏览器会在用户点击后才允许）
+  document.body.addEventListener('click',()=>tryAutoplay(),{once:true});
+});
+
+async function sendYYResult(){
+  console.log('[YYR] called, roActive=',roActive);
+  const inp=document.getElementById('yyinput-result');
+  console.log('[YYR] inp=',inp,'value=',inp&&inp.value);
+  if(!inp)return;
+  const txt=inp.value.trim();if(!txt){console.log('[YYR] empty text');return;}
+  console.log('[YYR] sending:', txt.slice(0,30));
+  inp.value='';
+
+  appendBubble('yychat-result','user',txt);
+  appendBubble('yychat-result','thinking');
+
+  const expName={heart:'蛙心灌流',muscle:'骨骼肌收缩',nerve:'神经干动作电位'}[roActive]||'实验';
+  const drugCtx=roActive==='heart'?'当前灌流药物：'+((document.getElementById('heart-status')||{}).textContent||'未记录'):'';
+  const sys='你是机能学实验AI助教幽幽瓶，正在评估学生的'+expName+'实验结果观察。'
+    +(drugCtx?drugCtx+' ':'')
+    +'请对学生的描述评分（满分100分），维度：现象描述准确性(40分)、机制解释正确性(35分)、专业术语使用(15分)、表达完整性(10分)。'
+    +'严格按此格式回复：【得分：XX分】\n现象描述(X/40分)：[评价]\n机制解释(X/35分)：[评价]\n专业术语(X/15分)：[评价]\n表达完整(X/10分)：[评价]\n综合点评：[50字内]';
+
+  let reply='';
+  try{
+    const key=C.KEY;
+    console.log('[YYR] key length:', key.length, 'first4:', key.slice(0,4));
+    const r=await fetch('https://api.deepseek.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'deepseek-chat',max_tokens:400,temperature:0.7,
+        messages:[{role:'system',content:sys},{role:'user',content:txt}]})});
+    if(!r.ok){const errText=await r.text();throw new Error('HTTP '+r.status+': '+errText.slice(0,100));}
+    const d=await r.json();
+    reply=d.choices[0].message.content||'（AI未返回内容）';
+  }catch(e){
+    console.error('[sendYYResult]',e);
+    reply='⚠️ 评分失败：'+e.message;
+  }
+
+  const th=document.getElementById('yychat-result-thinking');if(th)th.remove();
+  appendBubble('yychat-result','yy',reply);
+  speak(reply);
+
+  // Extract score and record
+  const m=reply.match(/【得分：(\d+)分】/);
+  if(m){
+    const score=parseInt(m[1]);
+    recordScore(roActive,score,reply);
+    logSession(roActive,'提交评分',score+'分');
+    const badge=document.getElementById('result-score-badge');
+    const num=document.getElementById('result-score-num');
+    if(badge)badge.style.display='block';
+    if(num){
+      num.textContent=score+'分';
+      num.style.color=score>=85?'#00ee88':score>=70?'#ffcc00':'#ff6644';
+    }
+  }
+}
+</script>
+
+<!-- 学习报告 Modal -->
+<div id="report-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);overflow-y:auto">
+  <div style="max-width:680px;margin:40px auto;background:#0d1525;border:1px solid rgba(0,200,255,.2);border-radius:16px;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(0,200,255,.12)">
+      <div style="font-size:.95rem;font-weight:700;color:#e0eaff">📊 学习报告 & 薄弱点分析</div>
+      <button onclick="closeReport()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.2rem;cursor:pointer;padding:4px 8px">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div id="rpt-scores" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+      <div>
+        <div style="font-size:.75rem;font-weight:700;color:#e0eaff;margin-bottom:10px">⚠️ 薄弱知识点</div>
+        <div id="rpt-weakpoints" style="display:flex;flex-direction:column;gap:7px"></div>
+      </div>
+      <div>
+        <div style="font-size:.75rem;font-weight:700;color:#e0eaff;margin-bottom:8px">📝 操作记录</div>
+        <div id="rpt-history" style="font-size:.7rem;color:rgba(180,200,230,.7);line-height:1.9;max-height:180px;overflow-y:auto;padding:10px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid rgba(0,200,255,.08)"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="exportReportTXT()" style="padding:7px 16px;border-radius:8px;background:linear-gradient(135deg,rgba(0,200,255,.18),rgba(100,80,255,.12));border:1px solid rgba(0,200,255,.3);color:rgba(0,200,255,.9);font-size:.75rem;cursor:pointer">⬇ 导出文本报告</button>
+        <button onclick="exportReportPDF()" style="padding:7px 16px;border-radius:8px;background:linear-gradient(135deg,rgba(0,200,255,.18),rgba(100,80,255,.12));border:1px solid rgba(0,200,255,.3);color:rgba(0,200,255,.9);font-size:.75rem;cursor:pointer">⬇ 导出 PDF</button>
+        <button onclick="clearRecord()" style="padding:7px 16px;border-radius:8px;background:rgba(255,60,60,.08);border:1px solid rgba(255,60,60,.2);color:rgba(255,100,100,.8);font-size:.75rem;cursor:pointer">🗑 清空记录</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
